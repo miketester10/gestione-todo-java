@@ -15,6 +15,6 @@ public class LoginDto {
     private String email;
 
     @NotBlank(message = "La password è obbligatoria")
-    @Size(min = 4, message = "La password deve avere almeno 4 caratteri")
+    @Size(min = 6, message = "La password deve avere almeno 6 caratteri")
     private String password;
 }

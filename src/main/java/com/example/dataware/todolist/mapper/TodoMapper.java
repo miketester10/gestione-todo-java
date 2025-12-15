@@ -2,6 +2,7 @@ package com.example.dataware.todolist.mapper;
 
 import org.springframework.stereotype.Component;
 
+import com.example.dataware.todolist.dto.response.TodoResponse;
 import com.example.dataware.todolist.dto.response.TodoSimpleResponse;
 import com.example.dataware.todolist.entity.Todo;
 
@@ -15,6 +16,19 @@ public class TodoMapper {
                 .completed(todo.isCompleted())
                 .createdAt(todo.getCreatedAt())
                 .updatedAt(todo.getUpdatedAt())
+                .build();
+
+        return t;
+    }
+
+    public TodoResponse toDTO(Todo todo) {
+        TodoResponse t = TodoResponse.builder()
+                .id(todo.getId())
+                .title(todo.getTitle())
+                .completed(todo.isCompleted())
+                .createdAt(todo.getCreatedAt())
+                .updatedAt(todo.getUpdatedAt())
+                .user(UserMapper.toSimpleDTO(todo.getUser()))
                 .build();
 
         return t;

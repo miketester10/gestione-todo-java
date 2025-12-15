@@ -22,9 +22,6 @@ import lombok.Setter;
 public class TodoDto {
 
     @NotBlank(message = "Il titolo è obbligatorio")
-    @Size(min = 4, message = "Il nome deve avere almeno 4 caratteri")
+    @Size(min = 4, message = "Il titolo deve avere almeno 4 caratteri")
     private String title;
-
-    // opzionale, ma se presente deve essere true/false
-    private Boolean completed;
 }

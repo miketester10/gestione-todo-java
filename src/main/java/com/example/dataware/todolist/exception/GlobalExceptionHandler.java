@@ -9,8 +9,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
-
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -80,8 +80,34 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Gestisce le eccezioni MethodArgumentTypeMismatchException quando non viene
+     * passato un numero intero come @PathVariable.
+     * Restituisce una risposta preimpostata.
+     * 
+     * @param ex l'eccezione MethodArgumentTypeMismatchException
+     * @return ResponseEntity con la risposta di errore formattata
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex) {
+
+        int statusCode = HttpStatus.BAD_REQUEST.value();
+        String error = HttpStatus.BAD_REQUEST.getReasonPhrase();
+
+        log.error("Errore di Type Mismatch: {} - {}", statusCode, error);
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .statusCode(statusCode)
+                .error(error)
+                .message("L'id deve essere un numero intero positivo.")
+                .build();
+
+        return ResponseEntity.status(statusCode).body(errorResponse);
+    }
+
+    /**
      * Gestisce tutte le altre eccezioni non gestite.
-     * Restituisce una risposta generica di errore interno del server.
+     * Restituisce una risposta generica di errore interno del server preimpostata.
      * 
      * @param ex l'eccezione generica
      * @return ResponseEntity con la risposta di errore formattata
@@ -92,7 +118,7 @@ public class GlobalExceptionHandler {
         int statusCode = HttpStatus.INTERNAL_SERVER_ERROR.value();
         String error = HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase();
 
-        log.error("Errore non gestito: ", ex);
+        log.error("Errore non gestito: {}", ex.getMessage());
 
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .statusCode(statusCode)

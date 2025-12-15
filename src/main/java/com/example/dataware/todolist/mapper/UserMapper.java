@@ -3,10 +3,23 @@ package com.example.dataware.todolist.mapper;
 import org.springframework.stereotype.Component;
 
 import com.example.dataware.todolist.dto.response.UserResponse;
+import com.example.dataware.todolist.dto.response.UserSimpleResponse;
 import com.example.dataware.todolist.entity.User;
 
 @Component
 public class UserMapper {
+
+    public static UserSimpleResponse toSimpleDTO(User user) {
+        UserSimpleResponse u = UserSimpleResponse.builder()
+                .id(user.getId())
+                .nome(user.getNome())
+                .email(user.getEmail())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
+
+        return u;
+    }
 
     public UserResponse toDTO(User user) {
         UserResponse u = UserResponse.builder()
