@@ -1,0 +1,74 @@
+# -----------------------
+# Java / Maven
+# -----------------------
+
+# Compiled class files
+*.class
+
+# Package Files
+*.jar
+*.war
+*.ear
+
+# Build output
+target/
+
+# Maven Wrapper files
+.mvn/wrapper/maven-wrapper.jar
+
+# Logs
+*.log
+
+# -----------------------
+# Spring Boot
+# -----------------------
+/*.iml
+*.springBeans
+.springBeans
+
+# -----------------------
+# IDEs
+# -----------------------
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+out/
+
+# VSCode
+.vscode/
+
+# Eclipse
+*.classpath
+*.project
+*.settings/
+
+# -----------------------
+# Operating System
+# -----------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# -----------------------
+# Temporary files
+# -----------------------
+*.tmp
+*.swp
+*.swo
+*~
+
+# -----------------------
+# Environment variables
+# -----------------------
+.env

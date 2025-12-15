@@ -1,0 +1,14 @@
+package com.example.dataware.todolist.repository;
+
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.example.dataware.todolist.entity.User;
+
+public interface UserRepository extends JpaRepository<User, Long> {
+    Optional<User> findByEmail(String email);
+
+    boolean existsByEmail(String email);
+
+}
