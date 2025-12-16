@@ -24,9 +24,14 @@ public class Todo extends BaseEntity {
     @Column(nullable = false)
     private String title;
 
+    /**
+     * default = false
+     * (usare boolean anzichè Boolean, poichè se il valore non viene passato,
+     * con boolean viene salvato nel DB come false,
+     * mentre con Boolean viene salvatonel DB come null)
+     */
     @Column(nullable = false)
-    private boolean completed; // default = false (boolean anzichè Boolean, poichè se non passato con boolean
-                               // -> false, mentre con Boolean -> null)
+    private boolean completed;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)

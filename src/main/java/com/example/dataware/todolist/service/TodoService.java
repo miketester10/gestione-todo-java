@@ -6,9 +6,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import com.example.dataware.todolist.dto.validator.TodoDto;
+import com.example.dataware.todolist.dto.validator.TodoUpdateDto;
 import com.example.dataware.todolist.entity.Todo;
 import com.example.dataware.todolist.entity.User;
 import com.example.dataware.todolist.repository.TodoRepository;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -40,7 +42,20 @@ public class TodoService {
         return todoRepository.save(todo);
     }
 
-    // TODO PATCH
+    public Todo update(Long todoId, TodoUpdateDto todoUpdateDto, String email) {
+        Todo todo = findOne(todoId, email);
+
+        // Aggiorna solo i campi presenti nel DTO
+        if (todoUpdateDto.getTitle() != null) {
+            todo.setTitle(todoUpdateDto.getTitle());
+        }
+
+        if (todoUpdateDto.getCompleted() != null) {
+            todo.setCompleted(todoUpdateDto.getCompleted());
+        }
+
+        return todoRepository.save(todo);
+    }
 
     public void delete(Long todoId, String email) {
         Todo todo = findOne(todoId, email);

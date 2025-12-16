@@ -34,6 +34,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<SuccessResponse<UserResponse>> register(@Valid @RequestBody UserDto userDto) {
+
         User user = authService.register(userDto);
         UserResponse userResponse = userMapper.toDTO(user);
         return apiResponseBuilder.success(userResponse, HttpStatus.CREATED);
@@ -41,6 +42,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<SuccessResponse<Map<String, String>>> login(@Valid @RequestBody LoginDto loginDto) {
+
         Map<String, String> accessToken = authService.login(loginDto);
         return apiResponseBuilder.success(accessToken, HttpStatus.OK);
     }

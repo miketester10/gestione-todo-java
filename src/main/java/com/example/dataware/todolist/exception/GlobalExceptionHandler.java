@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -80,6 +81,33 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Gestisce le eccezioni HttpMessageNotReadableException, ad esempio, 
+     * quando non viene inviato un body in una richiesta POST/PUT/PATCH, 
+     * oppure viene inviato un valore che non riesce a deserializzare.
+     * Restituisce una risposta preimpostata.
+     * 
+     * @param ex l'eccezione HttpMessageNotReadableException
+     * @return ResponseEntity con la risposta di errore formattata
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException ex) {
+
+        int statusCode = HttpStatus.BAD_REQUEST.value();
+        String error = HttpStatus.BAD_REQUEST.getReasonPhrase();
+
+        log.error("Errore HttpMessageNotReadable: {} - {}", statusCode, error);
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .statusCode(statusCode)
+                .error(error)
+                .message("Devi inviare un body valido insieme alla richiesta HTTP")
+                .build();
+
+        return ResponseEntity.status(statusCode).body(errorResponse);
+    }
+
+    /**
      * Gestisce le eccezioni MethodArgumentTypeMismatchException quando non viene
      * passato un numero intero come @PathVariable.
      * Restituisce una risposta preimpostata.
@@ -94,12 +122,12 @@ public class GlobalExceptionHandler {
         int statusCode = HttpStatus.BAD_REQUEST.value();
         String error = HttpStatus.BAD_REQUEST.getReasonPhrase();
 
-        log.error("Errore di Type Mismatch: {} - {}", statusCode, error);
+        log.error("Errore TypeMismatch: {} - {}", statusCode, error);
 
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .statusCode(statusCode)
                 .error(error)
-                .message("L'id deve essere un numero intero positivo.")
+                .message("L'id deve essere un numero intero positivo")
                 .build();
 
         return ResponseEntity.status(statusCode).body(errorResponse);

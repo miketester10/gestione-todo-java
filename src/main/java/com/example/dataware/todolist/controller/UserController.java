@@ -28,6 +28,7 @@ public class UserController {
 
     @GetMapping("/profile")
     public ResponseEntity<SuccessResponse<UserResponse>> getProfile(@AuthenticationPrincipal JwtPayload jwtPayload) {
+
         User user = userService.findOne(jwtPayload.getEmail());
         UserResponse userResponse = userMapper.toDTO(user);
         return apiResponseBuilder.success(userResponse, HttpStatus.OK);
