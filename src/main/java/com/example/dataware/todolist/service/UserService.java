@@ -21,4 +21,9 @@ public class UserService {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Utente non trovato."));
     }
+
+    public void delete(String email) {
+        User user = findOne(email);
+        userRepository.delete(user);
+    }
 }

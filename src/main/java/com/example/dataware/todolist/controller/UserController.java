@@ -3,6 +3,7 @@ package com.example.dataware.todolist.controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,4 +34,12 @@ public class UserController {
         UserResponse userResponse = userMapper.toDTO(user);
         return apiResponseBuilder.success(userResponse, HttpStatus.OK);
     }
+
+    @DeleteMapping()
+    public ResponseEntity<SuccessResponse<Void>> delete(@AuthenticationPrincipal JwtPayload jwtPayload) {
+
+        userService.delete(jwtPayload.getEmail());
+        return apiResponseBuilder.success(HttpStatus.OK);
+    }
+
 }
