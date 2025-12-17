@@ -6,10 +6,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-
 import com.example.dataware.todolist.dto.LoginDto;
 import com.example.dataware.todolist.dto.validator.UserDto;
 import com.example.dataware.todolist.entity.User;
+import com.example.dataware.todolist.interfaces.AuthService;
 import com.example.dataware.todolist.jwt.JwtService;
 import com.example.dataware.todolist.repository.UserRepository;
 
@@ -19,12 +19,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j // Logger
 @Service
 @RequiredArgsConstructor
-public class AuthService {
+public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
+    @Override
     public User register(UserDto userDto) {
         if (userRepository.existsByEmail(userDto.getEmail())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email già registrata");
@@ -41,6 +42,7 @@ public class AuthService {
         return userRepository.save(user);
     }
 
+    @Override
     public Map<String, String> login(LoginDto loginDto) {
         User user = userRepository.findByEmail(loginDto.getEmail())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email o password non validi"));

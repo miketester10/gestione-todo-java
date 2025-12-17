@@ -13,8 +13,9 @@ import com.example.dataware.todolist.dto.LoginDto;
 import com.example.dataware.todolist.dto.response.UserResponse;
 import com.example.dataware.todolist.dto.validator.UserDto;
 import com.example.dataware.todolist.entity.User;
+import com.example.dataware.todolist.interfaces.AuthService;
 import com.example.dataware.todolist.mapper.UserMapper;
-import com.example.dataware.todolist.service.AuthService;
+
 import com.example.dataware.todolist.util.SuccessResponse;
 import com.example.dataware.todolist.util.SuccessResponseBuilder;
 

@@ -9,6 +9,8 @@ import com.example.dataware.todolist.dto.validator.TodoDto;
 import com.example.dataware.todolist.dto.validator.TodoUpdateDto;
 import com.example.dataware.todolist.entity.Todo;
 import com.example.dataware.todolist.entity.User;
+import com.example.dataware.todolist.interfaces.TodoService;
+import com.example.dataware.todolist.interfaces.UserService;
 import com.example.dataware.todolist.repository.TodoRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -17,22 +19,25 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j // Logger
 @Service
 @RequiredArgsConstructor
-public class TodoService {
+public class TodoServiceImpl implements TodoService {
 
     private final TodoRepository todoRepository;
     private final UserService userService;
 
+    @Override
     public List<Todo> findAll(String email) {
         User user = userService.findOne(email);
         return todoRepository.findAllByUser(user);
     }
 
+    @Override
     public Todo findOne(Long todoId, String email) {
         User user = userService.findOne(email);
         return todoRepository.findOneByIdAndUser(todoId, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Todo non trovato."));
     }
 
+    @Override
     public Todo create(TodoDto todoDto, String email) {
         User user = userService.findOne(email);
         Todo todo = Todo.builder()
@@ -42,6 +47,7 @@ public class TodoService {
         return todoRepository.save(todo);
     }
 
+    @Override
     public Todo update(Long todoId, TodoUpdateDto todoUpdateDto, String email) {
         Todo todo = findOne(todoId, email);
 
@@ -57,6 +63,7 @@ public class TodoService {
         return todoRepository.save(todo);
     }
 
+    @Override
     public void delete(Long todoId, String email) {
         Todo todo = findOne(todoId, email);
         todoRepository.delete(todo);

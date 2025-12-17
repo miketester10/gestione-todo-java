@@ -16,9 +16,9 @@ import com.example.dataware.todolist.dto.response.TodoResponse;
 import com.example.dataware.todolist.dto.validator.TodoDto;
 import com.example.dataware.todolist.dto.validator.TodoUpdateDto;
 import com.example.dataware.todolist.entity.Todo;
+import com.example.dataware.todolist.interfaces.TodoService;
 import com.example.dataware.todolist.jwt.JwtPayload;
 import com.example.dataware.todolist.mapper.TodoMapper;
-import com.example.dataware.todolist.service.TodoService;
 import com.example.dataware.todolist.util.SuccessResponse;
 import com.example.dataware.todolist.util.SuccessResponseBuilder;
 
