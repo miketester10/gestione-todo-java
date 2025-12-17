@@ -15,6 +15,7 @@ Applicazione backend che fornisce un sistema completo di gestione di todo list c
 - **PostgreSQL** - Database relazionale
 - **JWT (JSON Web Token)** - Autenticazione stateless
 - **Lombok** - Riduzione boilerplate code
+- **MapStruct** 1.5.5 - Mapping automatico Entity ↔ DTO (compile-time)
 - **Jakarta Validation** - Validazione dei dati
 - **Jackson** - Serializzazione/deserializzazione JSON
 
@@ -27,6 +28,9 @@ Applicazione backend che fornisce un sistema completo di gestione di todo list c
 - `postgresql` - Driver database PostgreSQL
 - `jjwt` (0.11.5) - Gestione JWT
 - `lombok` - Generazione codice automatica
+- `mapstruct` (1.5.5.Final) - Mapping automatico Entity ↔ DTO
+- `mapstruct-processor` - Annotation processor per MapStruct
+- `lombok-mapstruct-binding` (0.2.0) - Integrazione Lombok-MapStruct
 - `spring-boot-devtools` - Strumenti di sviluppo
 
 ## 🏗️ Architettura del Progetto
@@ -62,15 +66,21 @@ src/main/java/com/example/dataware/todolist/
 │   ├── JwtPayload.java              # Payload JWT
 │   └── JwtService.java              # Servizio gestione JWT
 ├── mapper/
-│   ├── TodoMapper.java              # Mapper entità -> DTO
-│   └── UserMapper.java              # Mapper entità -> DTO
+│   ├── TodoMapper.java              # Interfaccia MapStruct per mapping Todo ↔ DTO
+│   └── UserMapper.java              # Interfaccia MapStruct per mapping User ↔ DTO
+│   # ⚠️ Le implementazioni sono auto-generate da MapStruct durante la compilazione
+│   # 📁 Posizione: target/generated-sources/annotations/com/example/dataware/todolist/mapper/
 ├── repository/
 │   ├── TodoRepository.java          # Repository JPA per Todo
 │   └── UserRepository.java          # Repository JPA per User
+├── interfaces/
+│   ├── AuthService.java             # Interfaccia servizio autenticazione
+│   ├── TodoService.java             # Interfaccia servizio todo
+│   └── UserService.java             # Interfaccia servizio utente
 ├── service/
-│   ├── AuthService.java             # Logica autenticazione
-│   ├── TodoService.java             # Logica business todo
-│   └── UserService.java             # Logica business utente
+│   ├── AuthServiceImpl.java         # Implementazione servizio autenticazione
+│   ├── TodoServiceImpl.java         # Implementazione servizio todo
+│   └── UserServiceImpl.java         # Implementazione servizio utente
 └── util/
     ├── SuccessResponse.java         # Modello risposta successo
     └── SuccessResponseBuilder.java  # Builder per risposte di successo
@@ -88,6 +98,7 @@ L'applicazione utilizza **JWT (JSON Web Token)** per l'autenticazione stateless:
 ## 🗄️ Modello Dati
 
 ### User
+
 - `id` (Long) - Identificatore univoco
 - `nome` (String) - Nome utente (min 4 caratteri)
 - `email` (String) - Email univoca
@@ -97,6 +108,7 @@ L'applicazione utilizza **JWT (JSON Web Token)** per l'autenticazione stateless:
 - `updatedAt` (Instant) - Data ultimo aggiornamento
 
 ### Todo
+
 - `id` (Long) - Identificatore univoco
 - `title` (String) - Titolo del todo (min 4 caratteri)
 - `completed` (boolean) - Stato di completamento (default: false)
@@ -109,9 +121,11 @@ L'applicazione utilizza **JWT (JSON Web Token)** per l'autenticazione stateless:
 ### Autenticazione (`/auth`)
 
 #### POST `/auth/register`
+
 Registrazione nuovo utente.
 
 **Body:**
+
 ```json
 {
   "nome": "string (min 4 caratteri)",
@@ -121,6 +135,7 @@ Registrazione nuovo utente.
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
   "statusCode": 201,
@@ -138,9 +153,11 @@ Registrazione nuovo utente.
 ```
 
 #### POST `/auth/login`
+
 Login utente esistente.
 
 **Body:**
+
 ```json
 {
   "email": "string",
@@ -149,6 +166,7 @@ Login utente esistente.
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
   "statusCode": 200,
@@ -165,11 +183,13 @@ Login utente esistente.
 **Nota:** Tutti gli endpoint richiedono autenticazione JWT.
 
 #### GET `/todos`
+
 Ottiene tutti i todo dell'utente autenticato.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Response:** `200 OK`
+
 ```json
 {
   "statusCode": 200,
@@ -193,6 +213,7 @@ Ottiene tutti i todo dell'utente autenticato.
 ```
 
 #### GET `/todos/{todoId}`
+
 Ottiene un singolo todo per ID.
 
 **Headers:** `Authorization: Bearer <token>`
@@ -200,11 +221,13 @@ Ottiene un singolo todo per ID.
 **Response:** `200 OK`
 
 #### POST `/todos`
+
 Crea un nuovo todo.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Body:**
+
 ```json
 {
   "title": "string (min 4 caratteri)"
@@ -214,11 +237,13 @@ Crea un nuovo todo.
 **Response:** `201 Created`
 
 #### PATCH `/todos/{todoId}`
+
 Aggiorna un todo esistente.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Body:**
+
 ```json
 {
   "title": "string (opzionale, min 4 caratteri)",
@@ -229,6 +254,7 @@ Aggiorna un todo esistente.
 **Response:** `200 OK`
 
 #### DELETE `/todos/{todoId}`
+
 Elimina un todo.
 
 **Headers:** `Authorization: Bearer <token>`
@@ -240,11 +266,13 @@ Elimina un todo.
 **Nota:** Tutti gli endpoint richiedono autenticazione JWT.
 
 #### GET `/users/profile`
+
 Ottiene il profilo dell'utente autenticato.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Response:** `200 OK`
+
 ```json
 {
   "statusCode": 200,
@@ -268,6 +296,7 @@ Ottiene il profilo dell'utente autenticato.
 ```
 
 #### DELETE `/users`
+
 Elimina l'account dell'utente autenticato (cascade delete dei todo).
 
 **Headers:** `Authorization: Bearer <token>`
@@ -289,6 +318,7 @@ JWT_EXPIRES_IN=86400000
 ```
 
 **Descrizione variabili:**
+
 - `DB_URL` - URL di connessione al database PostgreSQL
 - `DB_USERNAME` - Username per il database
 - `DB_PASSWORD` - Password per il database
@@ -304,6 +334,7 @@ Il file `application.properties` è configurato con:
 - **Show SQL:** `true` (mostra le query SQL nei log)
 - **Error handling:** Stack trace disabilitato, messaggi abilitati
 - **Logging:** DEBUG per il package dell'applicazione, INFO per root
+- **Circular references:** Abilitati per i mapper MapStruct (`spring.main.allow-circular-references=true`)
 
 ## 🚀 Installazione e Avvio
 
@@ -316,29 +347,39 @@ Il file `application.properties` è configurato con:
 ### Passaggi
 
 1. **Clonare il repository**
+
 ```bash
 git clone <repository-url>
 cd todolist
 ```
 
 2. **Configurare il database PostgreSQL**
+
 ```bash
 createdb todolist
 ```
 
 3. **Configurare le variabili d'ambiente**
-Creare il file `.env` nella root del progetto con le credenziali del database e la chiave JWT.
+   Creare il file `.env` nella root del progetto con le credenziali del database e la chiave JWT.
 
 4. **Compilare e avviare l'applicazione**
+
 ```bash
 ./mvnw spring-boot:run
 ```
 
 Oppure tramite Maven:
+
 ```bash
 mvn clean install
 java -jar target/todolist-0.0.1-SNAPSHOT.jar
 ```
+
+**Nota sulla compilazione:**
+
+- Durante la compilazione, MapStruct genera automaticamente le implementazioni dei mapper in `target/generated-sources/annotations/`
+- Le classi generate sono annotate con `@Component` e possono essere iniettate come bean Spring
+- Se modifichi le interfacce mapper, ricompila per rigenerare le implementazioni
 
 L'applicazione sarà disponibile su `http://localhost:3001`
 
@@ -347,15 +388,18 @@ L'applicazione sarà disponibile su `http://localhost:3001`
 L'applicazione utilizza **Jakarta Validation** per validare i dati in ingresso:
 
 - **UserDto:**
+
   - `nome`: NotBlank, Size(min=4)
   - `email`: NotBlank, Email
   - `password`: NotBlank, Size(min=6)
 
 - **LoginDto:**
+
   - `email`: NotBlank, Email
   - `password`: NotBlank, Size(min=6)
 
 - **TodoDto:**
+
   - `title`: NotBlank, Size(min=4)
 
 - **TodoUpdateDto:**
@@ -373,6 +417,7 @@ L'applicazione utilizza un **GlobalExceptionHandler** che gestisce:
 - `Exception` - Errori generici
 
 Tutte le risposte di errore seguono il formato:
+
 ```json
 {
   "statusCode": 400,
@@ -381,7 +426,60 @@ Tutte le risposte di errore seguono il formato:
 }
 ```
 
+## 🗺️ MapStruct - Mapping Automatico
+
+Il progetto utilizza **MapStruct** per la conversione automatica tra entità JPA e DTO di risposta, eliminando completamente il boilerplate code manuale.
+
+### Caratteristiche
+
+- **Zero boilerplate**: Le interfacce mapper contengono solo le definizioni dei metodi
+- **Type-safe**: Tutti gli errori di mapping vengono rilevati a compile-time
+- **Performance**: Il codice viene generato a compile-time (no reflection a runtime)
+- **Auto-mapping**: MapStruct mappa automaticamente i campi con lo stesso nome
+- **Conversione automatica**: Gestisce automaticamente conversioni di tipi annidati e liste
+
+### Come Funziona
+
+1. **Interfacce Mapper**: Definite in `src/main/java/.../mapper/`
+
+   ```java
+   @Mapper(componentModel = "spring")
+   public interface TodoMapper {
+       TodoSimpleResponse toSimpleDTO(Todo todo);
+       TodoResponse toDTO(Todo todo);
+   }
+   ```
+
+2. **Implementazioni Generate**: MapStruct genera automaticamente le implementazioni in `target/generated-sources/annotations/` durante la compilazione
+
+3. **Componenti Spring**: Le implementazioni generate sono automaticamente annotate con `@Component`, quindi possono essere iniettate nei controller
+
+### Configurazione
+
+MapStruct è configurato nel `pom.xml`:
+
+- **Dipendenza**: `mapstruct` (1.5.5.Final)
+- **Annotation Processor**: `mapstruct-processor` configurato in `maven-compiler-plugin`
+- **Integrazione Lombok**: `lombok-mapstruct-binding` per compatibilità con Lombok
+
+### Vantaggi rispetto ai Mapper Manuali
+
+- ✅ **Nessun codice manuale**: Tutto generato automaticamente
+- ✅ **Type-safe**: Errori rilevati in compilazione
+- ✅ **Manutenibilità**: Cambi alle entità/DTO si riflettono automaticamente
+- ✅ **Performance**: Codice generato ottimizzato, no reflection
+- ✅ **Auto-mapping intelligente**: Gestisce automaticamente conversioni complesse
+
+### Esempio di Mapping Automatico
+
+MapStruct gestisce automaticamente:
+
+- **Campi semplici**: `id`, `title`, `completed` → mappati per nome
+- **Tipi annidati**: `User` → `UserSimpleResponse` (genera metodo helper automaticamente)
+- **Liste**: `List<Todo>` → `List<TodoSimpleResponse>` (conversione automatica)
+
+Le implementazioni generate sono visibili in `target/generated-sources/annotations/com/example/dataware/todolist/mapper/` dopo la compilazione.
+
 ## 👤 Autore
 
 Progetto sviluppato per la gestione di una lista di attività (todo).
-
