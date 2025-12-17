@@ -1,37 +1,47 @@
 package com.example.dataware.todolist.mapper;
 
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
 
 import com.example.dataware.todolist.dto.response.TodoResponse;
 import com.example.dataware.todolist.dto.response.TodoSimpleResponse;
 import com.example.dataware.todolist.entity.Todo;
 
-@Component
-public class TodoMapper {
+/**
+ * Le implementazioni del codice auto-generato dei mapper si trova in
+ * target/generated-sources/annotations
+ */
+@Mapper(componentModel = "spring")
+public interface TodoMapper {
 
-    public static TodoSimpleResponse toSimpleDTO(Todo todo) {
-        TodoSimpleResponse t = TodoSimpleResponse.builder()
-                .id(todo.getId())
-                .title(todo.getTitle())
-                .completed(todo.isCompleted())
-                .createdAt(todo.getCreatedAt())
-                .updatedAt(todo.getUpdatedAt())
-                .build();
+    TodoSimpleResponse toSimpleDTO(Todo todo);
 
-        return t;
-    }
+    TodoResponse toDTO(Todo todo);
 
-    public TodoResponse toDTO(Todo todo) {
-        TodoResponse t = TodoResponse.builder()
-                .id(todo.getId())
-                .title(todo.getTitle())
-                .completed(todo.isCompleted())
-                .createdAt(todo.getCreatedAt())
-                .updatedAt(todo.getUpdatedAt())
-                .user(UserMapper.toSimpleDTO(todo.getUser()))
-                .build();
+    /**
+     * Mapper manuale senza mapstruct-processor @Mapper(componentModel = "spring")
+     */
+    // public static TodoSimpleResponse toSimpleDTO(Todo todo) {
+    // TodoSimpleResponse t = TodoSimpleResponse.builder()
+    // .id(todo.getId())
+    // .title(todo.getTitle())
+    // .completed(todo.isCompleted())
+    // .createdAt(todo.getCreatedAt())
+    // .updatedAt(todo.getUpdatedAt())
+    // .build();
 
-        return t;
-    }
+    // return t;
+    // }
 
+    // public TodoResponse toDTO(Todo todo) {
+    // TodoResponse t = TodoResponse.builder()
+    // .id(todo.getId())
+    // .title(todo.getTitle())
+    // .completed(todo.isCompleted())
+    // .createdAt(todo.getCreatedAt())
+    // .updatedAt(todo.getUpdatedAt())
+    // .user(UserMapper.toSimpleDTO(todo.getUser()))
+    // .build();
+
+    // return t;
+    // }
 }
