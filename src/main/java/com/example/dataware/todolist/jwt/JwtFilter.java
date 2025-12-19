@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
-
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -129,15 +129,19 @@ public class JwtFilter extends OncePerRequestFilter {
     }
 
     private void sendError(HttpServletResponse response, String message) throws IOException {
+        HttpStatus status = HttpStatus.UNAUTHORIZED;
+
         ErrorResponse errorResponseObj = ErrorResponse.builder()
-                .statusCode(HttpStatus.UNAUTHORIZED.value())
-                .error(HttpStatus.UNAUTHORIZED.getReasonPhrase())
+                .statusCode(status.value())
+                .error(status.getReasonPhrase())
                 .message(message)
                 .build();
+
         String errorResponseString = objectMapper.writeValueAsString(errorResponseObj);
 
-        response.setContentType("application/json");
-        response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        response.setContentType(MediaType.APPLICATION_JSON.toString());
+        response.setStatus(status.value());
         response.getWriter().write(errorResponseString);
     }
+
 }
