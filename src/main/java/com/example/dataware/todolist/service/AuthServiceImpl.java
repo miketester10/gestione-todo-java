@@ -10,7 +10,7 @@ import com.example.dataware.todolist.dto.LoginDto;
 import com.example.dataware.todolist.dto.validator.UserDto;
 import com.example.dataware.todolist.entity.User;
 import com.example.dataware.todolist.interfaces.AuthService;
-import com.example.dataware.todolist.jwt.JwtService;
+import com.example.dataware.todolist.jwt.service.JwtService;
 import com.example.dataware.todolist.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;

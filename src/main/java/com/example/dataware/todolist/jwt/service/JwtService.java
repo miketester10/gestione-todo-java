@@ -1,4 +1,4 @@
-package com.example.dataware.todolist.jwt;
+package com.example.dataware.todolist.jwt.service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
