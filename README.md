@@ -53,7 +53,8 @@ src/main/java/com/example/dataware/todolist/
 │       ├── UserResponse.java        # Response utente completo
 │       ├── UserSimpleResponse.java  # Response utente semplificato
 │       ├── TodoResponse.java        # Response todo completo
-│       └── TodoSimpleResponse.java  # Response todo semplificato
+│       ├── TodoSimpleResponse.java  # Response todo semplificato
+│       └── TokenResponse.java       # Response con accessToken e refreshToken
 ├── entity/
 │   ├── BaseEntity.java              # Entità base con id, createdAt, updatedAt
 │   ├── User.java                    # Entità utente
@@ -62,9 +63,14 @@ src/main/java/com/example/dataware/todolist/
 │   ├── ErrorResponse.java           # Modello risposta errore
 │   └── GlobalExceptionHandler.java  # Gestore globale eccezioni
 ├── jwt/
-│   ├── JwtFilter.java               # Filtro JWT per Spring Security
-│   ├── JwtPayload.java              # Payload JWT
-│   └── JwtService.java              # Servizio gestione JWT
+│   ├── enums/
+│   │   └── TokenType.java           # Enum per distinguere ACCESS e REFRESH token
+│   ├── filter/
+│   │   ├── JwtAccessFilter.java     # Filtro per validazione access token
+│   │   └── JwtRefreshFilter.java    # Filtro per validazione refresh token
+│   ├── JwtPayload.java              # Payload JWT (userId, email)
+│   └── service/
+│       └── JwtService.java          # Servizio gestione JWT (generazione e validazione)
 ├── mapper/
 │   ├── TodoMapper.java              # Interfaccia MapStruct per mapping Todo ↔ DTO
 │   └── UserMapper.java              # Interfaccia MapStruct per mapping User ↔ DTO
@@ -88,12 +94,17 @@ src/main/java/com/example/dataware/todolist/
 
 ## 🔐 Sistema di Autenticazione
 
-L'applicazione utilizza **JWT (JSON Web Token)** per l'autenticazione stateless:
+L'applicazione utilizza **JWT (JSON Web Token)** con sistema di **Access Token** e **Refresh Token** per l'autenticazione stateless:
 
-- Gli endpoint `/auth/**` sono pubblici e non richiedono autenticazione
-- Tutti gli altri endpoint richiedono un token JWT valido nell'header `Authorization: Bearer <token>`
-- Il token contiene `email` e `userId` dell'utente
+- Gli endpoint `/auth/**` sono pubblici e non richiedono autenticazione (eccetto `/auth/refresh-token` che richiede un refresh token)
+- Tutti gli altri endpoint richiedono un **access token** valido nell'header `Authorization: Bearer <accessToken>`
+- Il sistema utilizza due tipi di token:
+  - **Access Token**: Token a breve durata per autenticare le richieste API
+  - **Refresh Token**: Token a lunga durata per ottenere nuovi access token senza ri-autenticarsi
+- Entrambi i token contengono `email` e `userId` dell'utente
+- I token utilizzano chiavi segrete separate per maggiore sicurezza
 - La sessione è configurata come `STATELESS`
+- Due filtri separati gestiscono la validazione: `JwtAccessFilter` per gli access token e `JwtRefreshFilter` per i refresh token
 
 ## 🗄️ Modello Dati
 
@@ -172,11 +183,38 @@ Login utente esistente.
   "statusCode": 200,
   "message": "Success",
   "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   },
   "timestamp": "2024-01-01T10:00:00Z"
 }
 ```
+
+#### POST `/auth/refresh-token`
+
+Ottiene nuovi access token e refresh token utilizzando un refresh token valido.
+
+**Headers:** `Authorization: Bearer <refreshToken>`
+
+**Response:** `200 OK`
+
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  },
+  "timestamp": "2024-01-01T10:00:00Z"
+}
+```
+
+**Note:**
+
+- Richiede un refresh token valido nell'header `Authorization`
+- Restituisce una nuova coppia di access token e refresh token
+- Utile quando l'access token è scaduto senza dover effettuare nuovamente il login
 
 ### Todo (`/todos`)
 
@@ -313,8 +351,10 @@ Creare un file `.env` nella root del progetto con le seguenti variabili:
 DB_URL=jdbc:postgresql://localhost:5432/todolist
 DB_USERNAME=your_username
 DB_PASSWORD=your_password
-JWT_SECRET=your_secret_key_min_32_characters
-JWT_EXPIRES_IN=86400000
+JWT_ACCESS_SECRET=your_access_secret_key_min_32_characters
+JWT_ACCESS_EXPIRATION=2h
+JWT_REFRESH_SECRET=your_refresh_secret_key_min_32_characters
+JWT_REFRESH_EXPIRATION=7d
 ```
 
 **Descrizione variabili:**
@@ -322,8 +362,10 @@ JWT_EXPIRES_IN=86400000
 - `DB_URL` - URL di connessione al database PostgreSQL
 - `DB_USERNAME` - Username per il database
 - `DB_PASSWORD` - Password per il database
-- `JWT_SECRET` - Chiave segreta per la firma dei JWT (minimo 32 caratteri)
-- `JWT_EXPIRES_IN` - Tempo di scadenza del token in millisecondi (es: 86400000 = 24 ore)
+- `JWT_ACCESS_SECRET` - Chiave segreta per la firma degli access token (minimo 32 caratteri)
+- `JWT_ACCESS_EXPIRATION` - Durata dell'access token (es: `2h` = 2 ore)
+- `JWT_REFRESH_SECRET` - Chiave segreta per la firma dei refresh token (minimo 32 caratteri, diversa dall'access secret)
+- `JWT_REFRESH_EXPIRATION` - Durata del refresh token (es: `7d` = 7 giorni)
 
 ### application.properties
 
@@ -335,6 +377,8 @@ Il file `application.properties` è configurato con:
 - **Error handling:** Stack trace disabilitato, messaggi abilitati
 - **Logging:** DEBUG per il package dell'applicazione, INFO per root
 - **Circular references:** Abilitati per i mapper MapStruct (`spring.main.allow-circular-references=true`)
+- **Caricamento .env:** Il file `.env` viene caricato automaticamente tramite `spring.config.import`
+- **JWT separati:** Configurazione separata per access token e refresh token con chiavi e scadenze indipendenti
 
 ## 🚀 Installazione e Avvio
 
@@ -479,6 +523,50 @@ MapStruct gestisce automaticamente:
 - **Liste**: `List<Todo>` → `List<TodoSimpleResponse>` (conversione automatica)
 
 Le implementazioni generate sono visibili in `target/generated-sources/annotations/com/example/dataware/todolist/mapper/` dopo la compilazione.
+
+## 🔄 Sistema di Refresh Token
+
+Il progetto implementa un sistema completo di **Access Token** e **Refresh Token** per migliorare la sicurezza e l'esperienza utente.
+
+### Come Funziona
+
+1. **Login**: Quando un utente effettua il login, riceve due token:
+
+   - **Access Token**: Token a breve durata (es: 15 minuti) utilizzato per autenticare le richieste API
+   - **Refresh Token**: Token a lunga durata (es: 7 giorni) utilizzato per ottenere nuovi access token
+
+2. **Utilizzo Access Token**: L'access token viene inviato nell'header `Authorization: Bearer <accessToken>` per tutte le richieste API protette.
+
+3. **Refresh Token**: Quando l'access token scade, invece di effettuare nuovamente il login, è possibile utilizzare il refresh token per ottenere una nuova coppia di token tramite l'endpoint `/auth/refresh-token`.
+
+### Architettura dei Filtri
+
+Il sistema utilizza due filtri separati per gestire i diversi tipi di token:
+
+- **JwtAccessFilter**:
+
+  - Valida gli access token per tutti gli endpoint tranne `/auth/**`
+  - Estrae `userId` e `email` dal token e li inserisce nel `SecurityContext`
+  - Gestisce errori di token scaduto, malformato o mancante
+
+- **JwtRefreshFilter**:
+  - Valida i refresh token solo per l'endpoint `/auth/refresh-token`
+  - Estrae `userId` e `email` dal refresh token
+  - Permette l'accesso all'endpoint di refresh senza access token
+
+### Sicurezza
+
+- **Chiavi Separate**: Access token e refresh token utilizzano chiavi segrete diverse (`JWT_ACCESS_SECRET` e `JWT_REFRESH_SECRET`)
+- **Scadenze Diverse**: Access token con durata breve, refresh token con durata più lunga
+- **Validazione Separata**: Ogni tipo di token viene validato con la propria chiave segreta
+- **Enum TokenType**: Utilizzato per distinguere tra ACCESS e REFRESH token durante la validazione
+
+### Vantaggi
+
+- ✅ **Sicurezza Migliorata**: Access token a breve durata limitano i danni in caso di compromissione
+- ✅ **Esperienza Utente**: Nessun bisogno di ri-autenticarsi frequentemente grazie al refresh token
+- ✅ **Revoca Implicita**: Quando un refresh token scade, l'utente deve ri-autenticarsi
+- ✅ **Separazione delle Responsabilità**: Chiavi e filtri separati per maggiore sicurezza
 
 ## 👤 Autore
 
