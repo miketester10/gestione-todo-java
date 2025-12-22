@@ -1,12 +1,22 @@
 {"properties": [
   {
-    "name": "security.jwt.secret-key",
+    "name": "security.jwt.access-secret",
     "type": "java.lang.String",
-    "description": "Secret Key for JWT"
+    "description": "A description for 'security.jwt.access-secret'"
   },
   {
-    "name": "security.jwt.expiration-time",
+    "name": "security.jwt.access-expiration",
     "type": "java.lang.String",
-    "description": "Expiration of JWT"
+    "description": "A description for 'security.jwt.access-expiration'"
+  },
+  {
+    "name": "security.jwt.refresh-secret",
+    "type": "java.lang.String",
+    "description": "A description for 'security.jwt.refresh-secret'"
+  },
+  {
+    "name": "security.jwt.refresh-expiration",
+    "type": "java.lang.String",
+    "description": "A description for 'security.jwt.refresh-expiration'"
   }
 ]}

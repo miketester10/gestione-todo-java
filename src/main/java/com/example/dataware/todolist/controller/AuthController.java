@@ -4,16 +4,19 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.dataware.todolist.dto.LoginDto;
+import com.example.dataware.todolist.dto.response.TokenResponse;
 import com.example.dataware.todolist.dto.response.UserResponse;
 import com.example.dataware.todolist.dto.validator.UserDto;
 import com.example.dataware.todolist.entity.User;
 import com.example.dataware.todolist.interfaces.AuthService;
+import com.example.dataware.todolist.jwt.JwtPayload;
 import com.example.dataware.todolist.mapper.UserMapper;
 
 import com.example.dataware.todolist.util.SuccessResponse;
@@ -42,9 +45,17 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<SuccessResponse<Map<String, String>>> login(@Valid @RequestBody LoginDto loginDto) {
+    public ResponseEntity<SuccessResponse<TokenResponse>> login(@Valid @RequestBody LoginDto loginDto) {
 
-        Map<String, String> accessToken = authService.login(loginDto);
-        return apiResponseBuilder.success(accessToken, HttpStatus.OK);
+        TokenResponse tokenResponse = authService.login(loginDto);
+        return apiResponseBuilder.success(tokenResponse, HttpStatus.OK);
     }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<SuccessResponse<TokenResponse>> refresh(@AuthenticationPrincipal JwtPayload jwtPayload) {
+
+        TokenResponse tokenResponse = authService.refreshToken(jwtPayload.getEmail());
+        return apiResponseBuilder.success(tokenResponse, HttpStatus.OK);
+    }
+
 }

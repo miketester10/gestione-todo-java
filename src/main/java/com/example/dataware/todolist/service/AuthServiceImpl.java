@@ -1,12 +1,11 @@
 package com.example.dataware.todolist.service;
 
-import java.util.Map;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import com.example.dataware.todolist.dto.LoginDto;
+import com.example.dataware.todolist.dto.response.TokenResponse;
 import com.example.dataware.todolist.dto.validator.UserDto;
 import com.example.dataware.todolist.entity.User;
 import com.example.dataware.todolist.interfaces.AuthService;
@@ -43,7 +42,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public Map<String, String> login(LoginDto loginDto) {
+    public TokenResponse login(LoginDto loginDto) {
         User user = userRepository.findByEmail(loginDto.getEmail())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email o password non validi"));
 
@@ -51,9 +50,26 @@ public class AuthServiceImpl implements AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email o password non validi");
         }
 
-        String accessToken = jwtService.generateToken(user);
+        String accessToken = jwtService.generateAccessToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
 
-        return Map.of("accessToken", accessToken);
+        return TokenResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
+    }
 
+    @Override
+    public TokenResponse refreshToken(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Utente non trovato."));
+
+        String accessToken = jwtService.generateAccessToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
+
+        return TokenResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
     }
 }

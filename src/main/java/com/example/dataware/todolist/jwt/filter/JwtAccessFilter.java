@@ -12,6 +12,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.example.dataware.todolist.exception.ErrorResponse;
 import com.example.dataware.todolist.jwt.JwtPayload;
+import com.example.dataware.todolist.jwt.enums.TokenType;
 import com.example.dataware.todolist.jwt.service.JwtService;
 
 import io.jsonwebtoken.ExpiredJwtException;
@@ -28,18 +29,18 @@ import tools.jackson.databind.ObjectMapper;
 @Slf4j // Logger
 @Component
 @RequiredArgsConstructor
-public class JwtFilter extends OncePerRequestFilter {
+public class JwtAccessFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final ObjectMapper objectMapper;
 
     /**
-     * Non eseguire il filtro su endpoint pubblici.
+     * Non eseguire il filtro su endpoint /auth
      */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/auth/");
+        return path.startsWith("/auth");
     }
 
     @Override
@@ -56,8 +57,8 @@ public class JwtFilter extends OncePerRequestFilter {
 
             try {
 
-                Long userId = jwtService.extractUserId(token);
-                String email = jwtService.extractEmail(token);
+                Long userId = jwtService.extractUserId(token, TokenType.ACCESS);
+                String email = jwtService.extractEmail(token, TokenType.ACCESS);
 
                 JwtPayload jwtPayload = JwtPayload.builder()
                         .userId(userId)

@@ -2,6 +2,7 @@ package com.example.dataware.todolist.jwt.service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.time.Duration;
 import java.util.Date;
 // import java.util.function.Function;
 
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.example.dataware.todolist.entity.User;
+import com.example.dataware.todolist.jwt.enums.TokenType;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -19,29 +21,49 @@ import jakarta.annotation.PostConstruct;
 @Service
 public class JwtService {
 
-    @Value("${security.jwt.secret-key}")
-    private String SECRET;
-    @Value("${security.jwt.expiration-time}")
-    private long EXP;
+    @Value("${security.jwt.access-secret}")
+    private String ACCESS_SECRET;
+    @Value("${security.jwt.access-expiration}")
+    private Duration ACCESS_EXP;
 
-    private Key key;
+    @Value("${security.jwt.refresh-secret}")
+    private String REFRESH_SECRET;
+    @Value("${security.jwt.refresh-expiration}")
+    private Duration REFRESH_EXP;
+
+    private Key accessKey;
+    private Key refreshKey;
 
     @PostConstruct
     private void onInit() {
-        this.key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+        this.accessKey = Keys.hmacShaKeyFor(ACCESS_SECRET.getBytes(StandardCharsets.UTF_8));
+        this.refreshKey = Keys.hmacShaKeyFor(REFRESH_SECRET.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(User user) {
+    // --- Generazione token ---
+
+    public String generateToken(User user, Key key, Duration exp) {
         return Jwts.builder()
                 .setSubject(user.getEmail())
                 .claim("userId", user.getId())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXP))
+                .setExpiration(new Date(System.currentTimeMillis() + exp.toMillis()))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    private Claims extractAllClaims(String token) {
+    public String generateAccessToken(User user) {
+        return generateToken(user, accessKey, ACCESS_EXP);
+    }
+
+    public String generateRefreshToken(User user) {
+        return generateToken(user, refreshKey, REFRESH_EXP);
+    }
+
+    // --- Estrazione claim ---
+
+    private Claims extractAllClaims(String token, TokenType tokenType) {
+        Key key = tokenType == TokenType.REFRESH ? refreshKey : accessKey;
         return Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()
@@ -49,12 +71,12 @@ public class JwtService {
                 .getBody();
     }
 
-    public String extractEmail(String token) {
-        return extractAllClaims(token).getSubject();
+    public String extractEmail(String token, TokenType tokenType) {
+        return extractAllClaims(token, tokenType).getSubject();
     }
 
-    public Long extractUserId(String token) {
-        return extractAllClaims(token)
+    public Long extractUserId(String token, TokenType tokenType) {
+        return extractAllClaims(token, tokenType)
                 .get("userId", Long.class);
     }
 

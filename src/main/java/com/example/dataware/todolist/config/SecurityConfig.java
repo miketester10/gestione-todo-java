@@ -10,21 +10,23 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.example.dataware.todolist.jwt.filter.JwtFilter;
+import com.example.dataware.todolist.jwt.filter.JwtAccessFilter;
+import com.example.dataware.todolist.jwt.filter.JwtRefreshFilter;
 
 @Configuration
 @EnableWebSecurity
-
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain filterChain(HttpSecurity http, JwtFilter jwt) throws Exception {
+    SecurityFilterChain filterChain(
+            HttpSecurity http,
+            JwtAccessFilter jwtAccessFilter,
+            JwtRefreshFilter jwtRefreshFilter) throws Exception {
+
         http.csrf((csfr) -> csfr.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
-                        .anyRequest().authenticated())
-                .addFilterBefore(jwt, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAccessFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtRefreshFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
