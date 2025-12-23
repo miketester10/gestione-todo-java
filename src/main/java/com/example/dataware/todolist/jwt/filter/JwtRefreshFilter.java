@@ -10,10 +10,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.example.dataware.todolist.entity.User;
 import com.example.dataware.todolist.exception.ErrorResponse;
 import com.example.dataware.todolist.jwt.JwtPayload;
 import com.example.dataware.todolist.jwt.enums.TokenType;
 import com.example.dataware.todolist.jwt.service.JwtService;
+import com.example.dataware.todolist.repository.UserRepository;
+import com.example.dataware.todolist.service.EncryptionService;
 
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -32,6 +35,8 @@ import tools.jackson.databind.ObjectMapper;
 public class JwtRefreshFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final UserRepository userRepository;
+    private final EncryptionService encryptionService;
     private final ObjectMapper objectMapper;
 
     /**
@@ -57,9 +62,17 @@ public class JwtRefreshFilter extends OncePerRequestFilter {
 
             try {
 
+                // 1. Estrazione dati token (già valida firma e scadenza)
                 Long userId = jwtService.extractUserId(token, TokenType.REFRESH);
                 String email = jwtService.extractEmail(token, TokenType.REFRESH);
 
+                // 2. Recupera utente e valida refresh token
+                User user = userRepository.findByEmail(email)
+                        .orElseThrow(() -> new JwtException("User not found"));
+
+                validateStoredRefreshToken(user, token);
+
+                // 3. Crea l'Authentication e aggiorna SecurityContext
                 JwtPayload jwtPayload = JwtPayload.builder()
                         .userId(userId)
                         .email(email)
@@ -128,6 +141,20 @@ public class JwtRefreshFilter extends OncePerRequestFilter {
         } else {
             sendError(response, "Missing or malformed Authorization header");
             return;
+        }
+    }
+
+    private void validateStoredRefreshToken(User user, String token) {
+        String encryptedStoredToken = user.getRefreshToken();
+
+        if (encryptedStoredToken == null || encryptedStoredToken.isEmpty()) {
+            throw new JwtException("No refresh token stored for user");
+        }
+
+        String decryptedToken = encryptionService.decrypt(encryptedStoredToken);
+
+        if (!decryptedToken.equals(token)) {
+            throw new JwtException("Stored refresh token doesn't match provided token");
         }
     }
 

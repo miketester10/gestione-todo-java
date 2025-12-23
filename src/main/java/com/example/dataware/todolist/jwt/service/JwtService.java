@@ -16,28 +16,24 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
-import jakarta.annotation.PostConstruct;
 
 @Service
 public class JwtService {
+    private final Key accessKey;
+    private final Duration accessExp;
+    private final Key refreshKey;
+    private final Duration refreshExp;
 
-    @Value("${security.jwt.access-secret}")
-    private String ACCESS_SECRET;
-    @Value("${security.jwt.access-expiration}")
-    private Duration ACCESS_EXP;
-
-    @Value("${security.jwt.refresh-secret}")
-    private String REFRESH_SECRET;
-    @Value("${security.jwt.refresh-expiration}")
-    private Duration REFRESH_EXP;
-
-    private Key accessKey;
-    private Key refreshKey;
-
-    @PostConstruct
-    private void onInit() {
+    public JwtService(
+            @Value("${security.jwt.access-secret}") String ACCESS_SECRET,
+            @Value("${security.jwt.access-expiration}") Duration ACCESS_EXP,
+            @Value("${security.jwt.refresh-secret}") String REFRESH_SECRET,
+            @Value("${security.jwt.refresh-expiration}") Duration REFRESH_EXP) {
         this.accessKey = Keys.hmacShaKeyFor(ACCESS_SECRET.getBytes(StandardCharsets.UTF_8));
+        this.accessExp = ACCESS_EXP;
         this.refreshKey = Keys.hmacShaKeyFor(REFRESH_SECRET.getBytes(StandardCharsets.UTF_8));
+        this.refreshExp = REFRESH_EXP;
+
     }
 
     // --- Generazione token ---
@@ -53,11 +49,11 @@ public class JwtService {
     }
 
     public String generateAccessToken(User user) {
-        return generateToken(user, accessKey, ACCESS_EXP);
+        return generateToken(user, accessKey, accessExp);
     }
 
     public String generateRefreshToken(User user) {
-        return generateToken(user, refreshKey, REFRESH_EXP);
+        return generateToken(user, refreshKey, refreshExp);
     }
 
     // --- Estrazione claim ---

@@ -35,12 +35,13 @@ public class JwtAccessFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
 
     /**
-     * Non eseguire il filtro su endpoint /auth
+     * Non eseguire il filtro sugli endpoint /auth (ad eccezione di /auth/logout che
+     * deve essere protetto con access token).
      */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/auth");
+        return path.startsWith("/auth") && !path.equals("/auth/logout");
     }
 
     @Override
