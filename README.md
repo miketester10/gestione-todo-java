@@ -11,6 +11,7 @@ Applicazione backend che fornisce un sistema completo di gestione di todo list c
 - **Spring Boot** 4.0.0
 - **Java** 17
 - **Spring Security** - Autenticazione e autorizzazione
+- **Spring Security Crypto** - Crittografia dei refresh token salvati nel database
 - **Spring Data JPA** - Persistenza dati
 - **PostgreSQL** - Database relazionale
 - **JWT (JSON Web Token)** - Autenticazione stateless
@@ -85,6 +86,7 @@ src/main/java/com/example/dataware/todolist/
 │   └── UserService.java             # Interfaccia servizio utente
 ├── service/
 │   ├── AuthServiceImpl.java         # Implementazione servizio autenticazione
+│   ├── EncryptionService.java        # Servizio crittografia/decrittografia refresh token
 │   ├── TodoServiceImpl.java         # Implementazione servizio todo
 │   └── UserServiceImpl.java         # Implementazione servizio utente
 └── util/
@@ -96,13 +98,16 @@ src/main/java/com/example/dataware/todolist/
 
 L'applicazione utilizza **JWT (JSON Web Token)** con sistema di **Access Token** e **Refresh Token** per l'autenticazione stateless:
 
-- Gli endpoint `/auth/**` sono pubblici e non richiedono autenticazione (eccetto `/auth/refresh-token` che richiede un refresh token)
+- Gli endpoint `/auth/register` e `/auth/login` sono pubblici e non richiedono autenticazione
+- L'endpoint `/auth/refresh-token` richiede un **refresh token** valido nell'header `Authorization: Bearer <refreshToken>`
+- L'endpoint `/auth/logout` richiede un **access token** valido nell'header `Authorization: Bearer <accessToken>`
 - Tutti gli altri endpoint richiedono un **access token** valido nell'header `Authorization: Bearer <accessToken>`
 - Il sistema utilizza due tipi di token:
   - **Access Token**: Token a breve durata per autenticare le richieste API
-  - **Refresh Token**: Token a lunga durata per ottenere nuovi access token senza ri-autenticarsi
+  - **Refresh Token**: Token a lunga durata per ottenere nuovi access token senza ri-autenticarsi, salvato nel database (crittografato)
 - Entrambi i token contengono `email` e `userId` dell'utente
 - I token utilizzano chiavi segrete separate per maggiore sicurezza
+- I refresh token vengono crittografati prima di essere salvati nel database
 - La sessione è configurata come `STATELESS`
 - Due filtri separati gestiscono la validazione: `JwtAccessFilter` per gli access token e `JwtRefreshFilter` per i refresh token
 
@@ -114,6 +119,7 @@ L'applicazione utilizza **JWT (JSON Web Token)** con sistema di **Access Token**
 - `nome` (String) - Nome utente (min 4 caratteri)
 - `email` (String) - Email univoca
 - `password` (String) - Password hashata con BCrypt
+- `refreshToken` (String) - Refresh token crittografato salvato nel database (nullable)
 - `todos` (List<Todo>) - Lista di todo associati
 - `createdAt` (Instant) - Data di creazione
 - `updatedAt` (Instant) - Data ultimo aggiornamento
@@ -213,8 +219,34 @@ Ottiene nuovi access token e refresh token utilizzando un refresh token valido.
 **Note:**
 
 - Richiede un refresh token valido nell'header `Authorization`
+- Il refresh token viene validato contro quello salvato nel database (crittografato)
 - Restituisce una nuova coppia di access token e refresh token
+- Il nuovo refresh token viene salvato nel database (sostituendo quello precedente)
 - Utile quando l'access token è scaduto senza dover effettuare nuovamente il login
+
+#### DELETE `/auth/logout`
+
+Effettua il logout dell'utente autenticato, rimuovendo il refresh token dal database.
+
+**Headers:** `Authorization: Bearer <accessToken>`
+
+**Response:** `200 OK`
+
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": "Logged out successfully",
+  "timestamp": "2024-01-01T10:00:00Z"
+}
+```
+
+**Note:**
+
+- Richiede un access token valido nell'header `Authorization`
+- Rimuove il refresh token salvato nel database per l'utente
+- Dopo il logout, il refresh token non può più essere utilizzato per ottenere nuovi token
+- L'utente dovrà effettuare nuovamente il login per ottenere nuovi token
 
 ### Todo (`/todos`)
 
@@ -355,6 +387,8 @@ JWT_ACCESS_SECRET=your_access_secret_key_min_32_characters
 JWT_ACCESS_EXPIRATION=2h
 JWT_REFRESH_SECRET=your_refresh_secret_key_min_32_characters
 JWT_REFRESH_EXPIRATION=7d
+ENCRYPTION_KEY=your_encryption_key_min_16_characters
+ENCRYPTION_SALT=your_encryption_salt_min_8_characters
 ```
 
 **Descrizione variabili:**
@@ -366,6 +400,8 @@ JWT_REFRESH_EXPIRATION=7d
 - `JWT_ACCESS_EXPIRATION` - Durata dell'access token (es: `2h` = 2 ore)
 - `JWT_REFRESH_SECRET` - Chiave segreta per la firma dei refresh token (minimo 32 caratteri, diversa dall'access secret)
 - `JWT_REFRESH_EXPIRATION` - Durata del refresh token (es: `7d` = 7 giorni)
+- `ENCRYPTION_KEY` - Chiave per la crittografia dei refresh token salvati nel database (minimo 16 caratteri)
+- `ENCRYPTION_SALT` - Salt per la crittografia dei refresh token (minimo 8 caratteri)
 
 ### application.properties
 
@@ -379,6 +415,7 @@ Il file `application.properties` è configurato con:
 - **Circular references:** Abilitati per i mapper MapStruct (`spring.main.allow-circular-references=true`)
 - **Caricamento .env:** Il file `.env` viene caricato automaticamente tramite `spring.config.import`
 - **JWT separati:** Configurazione separata per access token e refresh token con chiavi e scadenze indipendenti
+- **Crittografia refresh token:** Configurazione per crittografare i refresh token salvati nel database usando Spring Security Crypto
 
 ## 🚀 Installazione e Avvio
 
@@ -526,18 +563,35 @@ Le implementazioni generate sono visibili in `target/generated-sources/annotatio
 
 ## 🔄 Sistema di Refresh Token
 
-Il progetto implementa un sistema completo di **Access Token** e **Refresh Token** per migliorare la sicurezza e l'esperienza utente.
+Il progetto implementa un sistema completo di **Access Token** e **Refresh Token** con persistenza e crittografia per migliorare la sicurezza e l'esperienza utente.
 
 ### Come Funziona
 
-1. **Login**: Quando un utente effettua il login, riceve due token:
+1. **Login**: Quando un utente effettua il login:
 
-   - **Access Token**: Token a breve durata (es: 15 minuti) utilizzato per autenticare le richieste API
-   - **Refresh Token**: Token a lunga durata (es: 7 giorni) utilizzato per ottenere nuovi access token
+   - Vengono generati due token: **Access Token** (breve durata) e **Refresh Token** (lunga durata)
+   - Il refresh token viene **crittografato** e **salvato nel database** nella colonna `refresh_token` della tabella `users`
+   - Entrambi i token vengono restituiti al client
 
 2. **Utilizzo Access Token**: L'access token viene inviato nell'header `Authorization: Bearer <accessToken>` per tutte le richieste API protette.
 
-3. **Refresh Token**: Quando l'access token scade, invece di effettuare nuovamente il login, è possibile utilizzare il refresh token per ottenere una nuova coppia di token tramite l'endpoint `/auth/refresh-token`.
+3. **Refresh Token**: Quando l'access token scade:
+
+   - Il client invia il refresh token all'endpoint `/auth/refresh-token`
+   - Il sistema valida il refresh token contro quello salvato nel database (dopo decrittografia)
+   - Se valido, genera una nuova coppia di token e aggiorna il refresh token nel database
+
+4. **Logout**: Quando l'utente effettua il logout:
+   - Il refresh token viene **rimosso dal database**
+   - Il refresh token non può più essere utilizzato per ottenere nuovi token
+   - L'utente dovrà effettuare nuovamente il login
+
+### Persistenza e Crittografia
+
+- **Persistenza**: I refresh token vengono salvati nel database nella colonna `refresh_token` della tabella `users`
+- **Crittografia**: I refresh token vengono crittografati prima di essere salvati usando **Spring Security Crypto** (`EncryptionService`)
+- **Validazione**: Durante il refresh, il token fornito viene confrontato con quello salvato nel database (dopo decrittografia)
+- **Sicurezza**: Anche se il database viene compromesso, i refresh token sono crittografati e non utilizzabili direttamente
 
 ### Architettura dei Filtri
 
@@ -552,7 +606,15 @@ Il sistema utilizza due filtri separati per gestire i diversi tipi di token:
 - **JwtRefreshFilter**:
   - Valida i refresh token solo per l'endpoint `/auth/refresh-token`
   - Estrae `userId` e `email` dal refresh token
-  - Permette l'accesso all'endpoint di refresh senza access token
+  - **Recupera l'utente dal database** e valida che il refresh token corrisponda a quello salvato
+  - Decrittografa il token salvato e lo confronta con quello fornito
+  - Permette l'accesso all'endpoint di refresh solo se la validazione ha successo
+
+### Servizi Coinvolti
+
+- **JwtService**: Genera e valida i token JWT (access e refresh)
+- **EncryptionService**: Crittografa e decrittografa i refresh token usando Spring Security Crypto
+- **AuthService**: Gestisce login, logout e refresh token, coordinando JwtService e EncryptionService
 
 ### Sicurezza
 
@@ -560,13 +622,19 @@ Il sistema utilizza due filtri separati per gestire i diversi tipi di token:
 - **Scadenze Diverse**: Access token con durata breve, refresh token con durata più lunga
 - **Validazione Separata**: Ogni tipo di token viene validato con la propria chiave segreta
 - **Enum TokenType**: Utilizzato per distinguere tra ACCESS e REFRESH token durante la validazione
+- **Crittografia Database**: I refresh token salvati sono crittografati con chiave e salt configurabili
+- **Validazione Database**: Il refresh token viene validato contro quello salvato nel database
+- **Revoca Esplicita**: Il logout rimuove il refresh token dal database, invalidandolo immediatamente
 
 ### Vantaggi
 
 - ✅ **Sicurezza Migliorata**: Access token a breve durata limitano i danni in caso di compromissione
 - ✅ **Esperienza Utente**: Nessun bisogno di ri-autenticarsi frequentemente grazie al refresh token
 - ✅ **Revoca Implicita**: Quando un refresh token scade, l'utente deve ri-autenticarsi
+- ✅ **Revoca Esplicita**: Il logout invalida immediatamente il refresh token
 - ✅ **Separazione delle Responsabilità**: Chiavi e filtri separati per maggiore sicurezza
+- ✅ **Protezione Database**: I refresh token salvati sono crittografati
+- ✅ **Validazione Robusta**: Il refresh token deve corrispondere a quello salvato nel database
 
 ## 👤 Autore
 
