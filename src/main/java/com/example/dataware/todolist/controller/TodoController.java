@@ -48,7 +48,8 @@ public class TodoController {
     }
 
     @GetMapping("/{todoId}")
-    public ResponseEntity<SuccessResponse<TodoResponse>> findOne(@AuthenticationPrincipal JwtPayload jwtPayload,
+    public ResponseEntity<SuccessResponse<TodoResponse>> findOne(
+            @AuthenticationPrincipal JwtPayload jwtPayload,
             @PathVariable Long todoId) {
 
         Todo todo = todoService.findOne(todoId, jwtPayload.getEmail());
@@ -57,7 +58,8 @@ public class TodoController {
     }
 
     @PostMapping
-    public ResponseEntity<SuccessResponse<TodoResponse>> create(@AuthenticationPrincipal JwtPayload jwtPayload,
+    public ResponseEntity<SuccessResponse<TodoResponse>> create(
+            @AuthenticationPrincipal JwtPayload jwtPayload,
             @Valid @RequestBody TodoDto todoDto) {
 
         Todo todo = todoService.create(todoDto, jwtPayload.getEmail());
@@ -78,7 +80,8 @@ public class TodoController {
     }
 
     @DeleteMapping("/{todoId}")
-    public ResponseEntity<SuccessResponse<Void>> delete(@AuthenticationPrincipal JwtPayload jwtPayload,
+    public ResponseEntity<SuccessResponse<Void>> delete(
+            @AuthenticationPrincipal JwtPayload jwtPayload,
             @PathVariable Long todoId) {
 
         todoService.delete(todoId, jwtPayload.getEmail());
