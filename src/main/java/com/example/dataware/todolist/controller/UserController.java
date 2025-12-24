@@ -1,7 +1,10 @@
 package com.example.dataware.todolist.controller;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,12 +23,23 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j // Logger
 @RestController
 @RequestMapping("/users")
+@PreAuthorize("hasAnyRole('USER', 'ADMIN')")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
     private final UserMapper userMapper;
     private final SuccessResponseBuilder apiResponseBuilder;
+
+    @GetMapping()
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<SuccessResponse<List<UserResponse>>> findAll() {
+        List<User> users = userService.findAll();
+        List<UserResponse> userResponses = users.stream()
+                .map(user -> userMapper.toDTO(user))
+                .toList();
+        return apiResponseBuilder.success(userResponses, HttpStatus.OK);
+    }
 
     @GetMapping("/profile")
     public ResponseEntity<SuccessResponse<UserResponse>> getProfile(@AuthenticationPrincipal JwtPayload jwtPayload) {

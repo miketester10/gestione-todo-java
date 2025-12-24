@@ -18,6 +18,7 @@ public class UserResponse {
     private Long id;
     private String nome;
     private String email;
+    private String role;
     private List<TodoSimpleResponse> todos;
     private Instant createdAt;
     private Instant updatedAt;

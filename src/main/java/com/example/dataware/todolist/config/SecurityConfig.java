@@ -2,6 +2,7 @@ package com.example.dataware.todolist.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -14,7 +15,8 @@ import com.example.dataware.todolist.jwt.filter.JwtAccessFilter;
 import com.example.dataware.todolist.jwt.filter.JwtRefreshFilter;
 
 @Configuration
-@EnableWebSecurity
+@EnableWebSecurity // Abilita sicurezza web
+@EnableMethodSecurity // Abilita annotation @PreAuthorize
 public class SecurityConfig {
 
     @Bean

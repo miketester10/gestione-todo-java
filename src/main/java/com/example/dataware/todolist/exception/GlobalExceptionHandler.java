@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -81,8 +82,8 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Gestisce le eccezioni HttpMessageNotReadableException, ad esempio, 
-     * quando non viene inviato un body in una richiesta POST/PUT/PATCH, 
+     * Gestisce le eccezioni HttpMessageNotReadableException, ad esempio,
+     * quando non viene inviato un body in una richiesta POST/PUT/PATCH,
      * oppure viene inviato un valore che non riesce a deserializzare.
      * Restituisce una risposta preimpostata.
      * 
@@ -128,6 +129,31 @@ public class GlobalExceptionHandler {
                 .statusCode(statusCode)
                 .error(error)
                 .message("L'id deve essere un numero intero positivo")
+                .build();
+
+        return ResponseEntity.status(statusCode).body(errorResponse);
+    }
+
+    /**
+     * Gestisce le eccezioni di autorizzazione negate (ad esempio non si hanno i ruoli necessari).
+     * Restituisce una risposta di errore con stato 403 Forbidden.
+     * 
+     * @param ex l'eccezione AuthorizationDeniedException
+     * @return ResponseEntity con la risposta di errore formattata
+     */
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAuthorizationDenied(
+            AuthorizationDeniedException ex) {
+
+        int statusCode = HttpStatus.FORBIDDEN.value();
+        String error = HttpStatus.FORBIDDEN.getReasonPhrase();
+
+        log.error("Errore AuthorizationDenied: {} - {}", statusCode, error);
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .statusCode(statusCode)
+                .error(error)
+                .message("Accesso negato. Non hai i permessi necessari per eseguire questa operazione.")
                 .build();
 
         return ResponseEntity.status(statusCode).body(errorResponse);

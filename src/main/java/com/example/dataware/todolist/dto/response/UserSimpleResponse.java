@@ -17,6 +17,7 @@ public class UserSimpleResponse {
     private Long id;
     private String nome;
     private String email;
+    private String role;
     private Instant createdAt;
     private Instant updatedAt;
 }

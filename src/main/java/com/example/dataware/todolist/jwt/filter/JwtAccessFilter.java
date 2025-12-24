@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -60,11 +61,13 @@ public class JwtAccessFilter extends OncePerRequestFilter {
 
                 Long userId = jwtService.extractUserId(token, TokenType.ACCESS);
                 String email = jwtService.extractEmail(token, TokenType.ACCESS);
+                String role = "ROLE_" + jwtService.extractRole(token, TokenType.ACCESS); // Aggiungiamo prefisso "ROLE_" altrimenti non viene riconosciuto da @PreAuthorize("hasRole('...')")
 
                 JwtPayload jwtPayload = JwtPayload.builder()
                         .userId(userId)
                         .email(email)
                         .build();
+                SimpleGrantedAuthority authority = new SimpleGrantedAuthority(role);
 
                 /*
                  * Creiamo manualmente un oggetto Authentication da inserire nel
@@ -93,7 +96,7 @@ public class JwtAccessFilter extends OncePerRequestFilter {
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                         jwtPayload, // principal (accessibile nei controller con @AuthenticationPrincipal)
                         null, // credentials
-                        List.of() // authorities
+                        List.of(authority) // authorities
                 );
 
                 /*
