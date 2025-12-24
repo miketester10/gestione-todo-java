@@ -61,13 +61,16 @@ public class JwtAccessFilter extends OncePerRequestFilter {
 
                 Long userId = jwtService.extractUserId(token, TokenType.ACCESS);
                 String email = jwtService.extractEmail(token, TokenType.ACCESS);
-                String role = "ROLE_" + jwtService.extractRole(token, TokenType.ACCESS); // Aggiungiamo prefisso "ROLE_" altrimenti non viene riconosciuto da @PreAuthorize("hasRole('...')")
+                String role = jwtService.extractRole(token, TokenType.ACCESS);
+                String grantedRole = "ROLE_" + role; // Aggiungiamo prefisso "ROLE_" altrimenti non viene riconosciuto
+                                                     // da @PreAuthorize("hasRole('...')")
 
                 JwtPayload jwtPayload = JwtPayload.builder()
                         .userId(userId)
                         .email(email)
+                        .role(role)
                         .build();
-                SimpleGrantedAuthority authority = new SimpleGrantedAuthority(role);
+                SimpleGrantedAuthority authority = new SimpleGrantedAuthority(grantedRole);
 
                 /*
                  * Creiamo manualmente un oggetto Authentication da inserire nel

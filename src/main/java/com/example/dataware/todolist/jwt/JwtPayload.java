@@ -12,4 +12,5 @@ import lombok.NoArgsConstructor;
 public class JwtPayload {
     private Long userId;
     private String email;
+    private String role;
 }
