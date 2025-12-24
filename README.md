@@ -4,7 +4,7 @@ API REST per la gestione di una lista di attività (todo) sviluppata con Spring 
 
 ## 📋 Descrizione
 
-Applicazione backend che fornisce un sistema completo di gestione di todo list con autenticazione JWT. Gli utenti possono registrarsi, autenticarsi e gestire le proprie attività personali.
+Applicazione backend che fornisce un sistema completo di gestione di todo list con autenticazione JWT e autorizzazione basata su ruoli. Gli utenti possono registrarsi, autenticarsi e gestire le proprie attività personali. Il sistema supporta due ruoli: **USER** (utente standard) e **ADMIN** (amministratore con privilegi aggiuntivi).
 
 ## 🛠️ Tecnologie Utilizzate
 
@@ -58,6 +58,8 @@ src/main/java/com/example/dataware/todolist/
 │       └── TokenResponse.java       # Response con accessToken e refreshToken
 ├── entity/
 │   ├── BaseEntity.java              # Entità base con id, createdAt, updatedAt
+│   ├── enums/
+│   │   └── Role.java                # Enum ruoli utente (USER, ADMIN)
 │   ├── User.java                    # Entità utente
 │   └── Todo.java                    # Entità todo
 ├── exception/
@@ -94,9 +96,9 @@ src/main/java/com/example/dataware/todolist/
     └── SuccessResponseBuilder.java  # Builder per risposte di successo
 ```
 
-## 🔐 Sistema di Autenticazione
+## 🔐 Sistema di Autenticazione e Autorizzazione
 
-L'applicazione utilizza **JWT (JSON Web Token)** con sistema di **Access Token** e **Refresh Token** per l'autenticazione stateless:
+L'applicazione utilizza **JWT (JSON Web Token)** con sistema di **Access Token** e **Refresh Token** per l'autenticazione stateless e **autorizzazione basata su ruoli**:
 
 - Gli endpoint `/auth/register` e `/auth/login` sono pubblici e non richiedono autenticazione
 - L'endpoint `/auth/refresh-token` richiede un **refresh token** valido nell'header `Authorization: Bearer <refreshToken>`
@@ -105,11 +107,13 @@ L'applicazione utilizza **JWT (JSON Web Token)** con sistema di **Access Token**
 - Il sistema utilizza due tipi di token:
   - **Access Token**: Token a breve durata per autenticare le richieste API
   - **Refresh Token**: Token a lunga durata per ottenere nuovi access token senza ri-autenticarsi, salvato nel database (crittografato)
-- Entrambi i token contengono `email` e `userId` dell'utente
+- Entrambi i token contengono `email`, `userId` e `role` dell'utente
 - I token utilizzano chiavi segrete separate per maggiore sicurezza
 - I refresh token vengono crittografati prima di essere salvati nel database
 - La sessione è configurata come `STATELESS`
 - Due filtri separati gestiscono la validazione: `JwtAccessFilter` per gli access token e `JwtRefreshFilter` per i refresh token
+- **Autorizzazione basata su ruoli**: Il sistema supporta due ruoli (`USER` e `ADMIN`) e utilizza `@PreAuthorize` per controllare l'accesso agli endpoint in base al ruolo dell'utente
+- Il ruolo viene estratto dal token JWT e aggiunto alle authorities di Spring Security con il prefisso `ROLE_`
 
 ## 🗄️ Modello Dati
 
@@ -119,6 +123,7 @@ L'applicazione utilizza **JWT (JSON Web Token)** con sistema di **Access Token**
 - `nome` (String) - Nome utente (min 4 caratteri)
 - `email` (String) - Email univoca
 - `password` (String) - Password hashata con BCrypt
+- `role` (Role) - Ruolo dell'utente (`USER` o `ADMIN`). Default: `USER` (impostato automaticamente tramite `@PrePersist`)
 - `refreshToken` (String) - Refresh token crittografato salvato nel database (nullable)
 - `todos` (List<Todo>) - Lista di todo associati
 - `createdAt` (Instant) - Data di creazione
@@ -161,6 +166,7 @@ Registrazione nuovo utente.
     "id": 1,
     "nome": "Mario Rossi",
     "email": "mario@example.com",
+    "role": "USER",
     "todos": [],
     "createdAt": "2024-01-01T10:00:00Z",
     "updatedAt": "2024-01-01T10:00:00Z"
@@ -168,6 +174,11 @@ Registrazione nuovo utente.
   "timestamp": "2024-01-01T10:00:00Z"
 }
 ```
+
+**Note:**
+
+- Alla registrazione, il ruolo viene impostato automaticamente a `USER` se non specificato
+- Il ruolo viene incluso nei token JWT generati durante il login
 
 #### POST `/auth/login`
 
@@ -272,7 +283,8 @@ Ottiene tutti i todo dell'utente autenticato.
       "user": {
         "id": 1,
         "nome": "Mario Rossi",
-        "email": "mario@example.com"
+        "email": "mario@example.com",
+        "role": "USER"
       },
       "createdAt": "2024-01-01T10:00:00Z",
       "updatedAt": "2024-01-01T10:00:00Z"
@@ -333,11 +345,53 @@ Elimina un todo.
 
 ### Utente (`/users`)
 
-**Nota:** Tutti gli endpoint richiedono autenticazione JWT.
+**Nota:** Tutti gli endpoint richiedono autenticazione JWT e ruoli specifici.
+
+**Autorizzazione:**
+- Tutti gli endpoint richiedono almeno il ruolo `USER` o `ADMIN`
+- L'endpoint `GET /users` richiede il ruolo `ADMIN`
+
+#### GET `/users`
+
+Ottiene tutti gli utenti registrati nel sistema.
+
+**Ruolo richiesto:** `ADMIN`
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response:** `200 OK`
+
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": [
+    {
+      "id": 1,
+      "nome": "Mario Rossi",
+      "email": "mario@example.com",
+      "role": "USER",
+      "createdAt": "2024-01-01T10:00:00Z",
+      "updatedAt": "2024-01-01T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "nome": "Admin User",
+      "email": "admin@example.com",
+      "role": "ADMIN",
+      "createdAt": "2024-01-01T10:00:00Z",
+      "updatedAt": "2024-01-01T10:00:00Z"
+    }
+  ],
+  "timestamp": "2024-01-01T10:00:00Z"
+}
+```
 
 #### GET `/users/profile`
 
 Ottiene il profilo dell'utente autenticato.
+
+**Ruolo richiesto:** `USER` o `ADMIN`
 
 **Headers:** `Authorization: Bearer <token>`
 
@@ -351,6 +405,7 @@ Ottiene il profilo dell'utente autenticato.
     "id": 1,
     "nome": "Mario Rossi",
     "email": "mario@example.com",
+    "role": "USER",
     "todos": [
       {
         "id": 1,
@@ -368,6 +423,8 @@ Ottiene il profilo dell'utente autenticato.
 #### DELETE `/users`
 
 Elimina l'account dell'utente autenticato (cascade delete dei todo).
+
+**Ruolo richiesto:** `USER` o `ADMIN`
 
 **Headers:** `Authorization: Bearer <token>`
 
@@ -416,6 +473,7 @@ Il file `application.properties` è configurato con:
 - **Caricamento .env:** Il file `.env` viene caricato automaticamente tramite `spring.config.import`
 - **JWT separati:** Configurazione separata per access token e refresh token con chiavi e scadenze indipendenti
 - **Crittografia refresh token:** Configurazione per crittografare i refresh token salvati nel database usando Spring Security Crypto
+- **Method Security:** Abilitato tramite `@EnableMethodSecurity` in `SecurityConfig` per supportare l'autorizzazione basata su ruoli con `@PreAuthorize`
 
 ## 🚀 Installazione e Avvio
 
@@ -600,7 +658,8 @@ Il sistema utilizza due filtri separati per gestire i diversi tipi di token:
 - **JwtAccessFilter**:
 
   - Valida gli access token per tutti gli endpoint tranne `/auth/**`
-  - Estrae `userId` e `email` dal token e li inserisce nel `SecurityContext`
+  - Estrae `userId`, `email` e `role` dal token e li inserisce nel `SecurityContext`
+  - Aggiunge il ruolo alle authorities di Spring Security con il prefisso `ROLE_` (es: `ROLE_USER`, `ROLE_ADMIN`)
   - Gestisce errori di token scaduto, malformato o mancante
 
 - **JwtRefreshFilter**:
@@ -635,6 +694,78 @@ Il sistema utilizza due filtri separati per gestire i diversi tipi di token:
 - ✅ **Separazione delle Responsabilità**: Chiavi e filtri separati per maggiore sicurezza
 - ✅ **Protezione Database**: I refresh token salvati sono crittografati
 - ✅ **Validazione Robusta**: Il refresh token deve corrispondere a quello salvato nel database
+
+## 👥 Sistema di Autorizzazione Basata su Ruoli
+
+Il progetto implementa un sistema completo di **autorizzazione basata su ruoli (RBAC)** utilizzando Spring Security e le annotation `@PreAuthorize`.
+
+### Ruoli Disponibili
+
+Il sistema supporta due ruoli definiti nell'enum `Role`:
+
+- **USER**: Ruolo standard per gli utenti registrati. Permette di gestire i propri todo e il proprio profilo.
+- **ADMIN**: Ruolo amministratore con privilegi aggiuntivi. Oltre alle funzionalità di `USER`, può visualizzare tutti gli utenti registrati nel sistema.
+
+### Come Funziona
+
+1. **Registrazione**: Quando un utente si registra, il ruolo viene impostato automaticamente a `USER` tramite il metodo `@PrePersist` nell'entità `User`.
+
+2. **Token JWT**: Il ruolo dell'utente viene incluso nei token JWT (sia access che refresh) come claim `role`.
+
+3. **Validazione Token**: Il `JwtAccessFilter` estrae il ruolo dal token e lo aggiunge alle authorities di Spring Security con il prefisso `ROLE_` (es: `ROLE_USER`, `ROLE_ADMIN`).
+
+4. **Autorizzazione Endpoint**: I controller utilizzano l'annotation `@PreAuthorize` per specificare quali ruoli possono accedere a ciascun endpoint:
+   - `@PreAuthorize("hasAnyRole('USER', 'ADMIN')")` - Richiede uno dei ruoli specificati
+   - `@PreAuthorize("hasRole('ADMIN')")` - Richiede esclusivamente il ruolo ADMIN
+
+### Configurazione
+
+- **SecurityConfig**: Abilita `@EnableMethodSecurity` per supportare le annotation `@PreAuthorize`
+- **JwtAccessFilter**: Estrae il ruolo dal token e lo aggiunge alle authorities del `SecurityContext`
+- **User Entity**: Campo `role` di tipo `Role` con default `USER`
+
+### Endpoint e Autorizzazioni
+
+| Endpoint | Metodo | Ruolo Richiesto | Descrizione |
+|----------|--------|-----------------|-------------|
+| `/auth/register` | POST | Nessuno | Registrazione pubblica |
+| `/auth/login` | POST | Nessuno | Login pubblico |
+| `/auth/refresh-token` | POST | Nessuno (richiede refresh token) | Refresh token |
+| `/auth/logout` | DELETE | USER o ADMIN | Logout |
+| `/todos` | GET, POST | USER o ADMIN | Gestione todo |
+| `/todos/{id}` | GET, PATCH, DELETE | USER o ADMIN | Operazioni su singolo todo |
+| `/users` | GET | **ADMIN** | Lista tutti gli utenti |
+| `/users/profile` | GET | USER o ADMIN | Profilo utente autenticato |
+| `/users` | DELETE | USER o ADMIN | Elimina account utente |
+
+### Esempio di Utilizzo
+
+```java
+@RestController
+@RequestMapping("/users")
+@PreAuthorize("hasAnyRole('USER', 'ADMIN')")  // Autorizzazione a livello di classe
+public class UserController {
+    
+    @GetMapping()
+    @PreAuthorize("hasRole('ADMIN')")  // Autorizzazione a livello di metodo
+    public ResponseEntity<...> findAll() {
+        // Solo ADMIN può accedere
+    }
+    
+    @GetMapping("/profile")
+    public ResponseEntity<...> getProfile() {
+        // USER o ADMIN possono accedere (eredita dalla classe)
+    }
+}
+```
+
+### Sicurezza
+
+- ✅ **Ruolo nel Token**: Il ruolo è incluso nel JWT e viene validato ad ogni richiesta
+- ✅ **Method Security**: Utilizzo di `@PreAuthorize` per controllo granulare degli accessi
+- ✅ **Default Sicuro**: Nuovi utenti ricevono automaticamente il ruolo `USER` (privilegi minimi)
+- ✅ **Separazione Ruoli**: Chiaro distinguo tra privilegi USER e ADMIN
+- ✅ **Type-Safe**: Utilizzo di enum per i ruoli (previene errori di digitazione)
 
 ## 👤 Autore
 
