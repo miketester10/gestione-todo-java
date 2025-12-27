@@ -45,8 +45,8 @@ src/main/java/com/example/dataware/todolist/
 │   ├── TodoController.java          # Endpoint gestione todo
 │   └── UserController.java          # Endpoint gestione utente
 ├── dto/
-│   ├── LoginDto.java                # DTO per login
 │   ├── validator/
+    │   ├── LoginDto.java            # DTO per login
 │   │   ├── UserDto.java             # DTO validazione registrazione utente
 │   │   ├── TodoDto.java             # DTO validazione creazione todo
 │   │   └── TodoUpdateDto.java       # DTO validazione aggiornamento todo
@@ -168,7 +168,6 @@ Registrazione nuovo utente.
     "nome": "Mario Rossi",
     "email": "mario@example.com",
     "role": "USER",
-    "todos": [],
     "createdAt": "2024-01-01T10:00:00Z",
     "updatedAt": "2024-01-01T10:00:00Z"
   },
@@ -290,12 +289,6 @@ Ottiene tutti i todo dell'utente autenticato con paginazione e filtro opzionale.
         "id": 1,
         "title": "Fare la spesa",
         "completed": false,
-        "user": {
-          "id": 1,
-          "nome": "Mario Rossi",
-          "email": "mario@example.com",
-          "role": "USER"
-        },
         "createdAt": "2024-01-01T10:00:00Z",
         "updatedAt": "2024-01-01T10:00:00Z"
       }
@@ -454,13 +447,6 @@ Ottiene il profilo dell'utente autenticato.
     "nome": "Mario Rossi",
     "email": "mario@example.com",
     "role": "USER",
-    "todos": [
-      {
-        "id": 1,
-        "title": "Fare la spesa",
-        "completed": false
-      }
-    ],
     "createdAt": "2024-01-01T10:00:00Z",
     "updatedAt": "2024-01-01T10:00:00Z"
   },
