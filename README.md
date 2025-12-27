@@ -46,7 +46,7 @@ src/main/java/com/example/dataware/todolist/
 │   └── UserController.java          # Endpoint gestione utente
 ├── dto/
 │   ├── validator/
-    │   ├── LoginDto.java            # DTO per login
+│   │   ├── LoginDto.java            # DTO per login
 │   │   ├── UserDto.java             # DTO validazione registrazione utente
 │   │   ├── TodoDto.java             # DTO validazione creazione todo
 │   │   └── TodoUpdateDto.java       # DTO validazione aggiornamento todo
