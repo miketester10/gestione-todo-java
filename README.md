@@ -55,7 +55,8 @@ src/main/java/com/example/dataware/todolist/
 │       ├── UserSimpleResponse.java  # Response utente semplificato
 │       ├── TodoResponse.java        # Response todo completo
 │       ├── TodoSimpleResponse.java  # Response todo semplificato
-│       └── TokenResponse.java       # Response con accessToken e refreshToken
+│       ├── TokenResponse.java       # Response con accessToken e refreshToken
+│       └── PageResponse.java        # DTO per risposte paginate
 ├── entity/
 │   ├── BaseEntity.java              # Entità base con id, createdAt, updatedAt
 │   ├── enums/
@@ -265,9 +266,17 @@ Effettua il logout dell'utente autenticato, rimuovendo il refresh token dal data
 
 #### GET `/todos`
 
-Ottiene tutti i todo dell'utente autenticato.
+Ottiene tutti i todo dell'utente autenticato con paginazione e filtro opzionale.
 
 **Headers:** `Authorization: Bearer <token>`
+
+**Query Parameters:**
+
+- `page` (opzionale, default: `1`) - Numero di pagina (min: 1)
+- `limit` (opzionale, default: `10`) - Numero di elementi per pagina (min: 1, max: 100)
+- `completed` (opzionale) - Filtra per stato di completamento (`true` o `false`)
+
+**Ordinamento:** I todo sono ordinati per `updatedAt` in ordine decrescente (più recenti prima).
 
 **Response:** `200 OK`
 
@@ -275,24 +284,40 @@ Ottiene tutti i todo dell'utente autenticato.
 {
   "statusCode": 200,
   "message": "Success",
-  "data": [
-    {
-      "id": 1,
-      "title": "Fare la spesa",
-      "completed": false,
-      "user": {
+  "data": {
+    "content": [
+      {
         "id": 1,
-        "nome": "Mario Rossi",
-        "email": "mario@example.com",
-        "role": "USER"
-      },
-      "createdAt": "2024-01-01T10:00:00Z",
-      "updatedAt": "2024-01-01T10:00:00Z"
-    }
-  ],
+        "title": "Fare la spesa",
+        "completed": false,
+        "user": {
+          "id": 1,
+          "nome": "Mario Rossi",
+          "email": "mario@example.com",
+          "role": "USER"
+        },
+        "createdAt": "2024-01-01T10:00:00Z",
+        "updatedAt": "2024-01-01T10:00:00Z"
+      }
+    ],
+    "currentPage": 1,
+    "limit": 10,
+    "totalElements": 25,
+    "totalPages": 3,
+    "first": true,
+    "last": false,
+    "hasNext": true,
+    "hasPrevious": false
+  },
   "timestamp": "2024-01-01T10:00:00Z"
 }
 ```
+
+**Note:**
+
+- La paginazione è 1-based (la prima pagina è `page=1`)
+- Il parametro `completed` è opzionale: se non specificato, vengono restituiti tutti i todo
+- Esempio: `GET /todos?page=2&limit=5&completed=false` per ottenere la seconda pagina di 5 todo non completati
 
 #### GET `/todos/{todoId}`
 
@@ -348,16 +373,24 @@ Elimina un todo.
 **Nota:** Tutti gli endpoint richiedono autenticazione JWT e ruoli specifici.
 
 **Autorizzazione:**
+
 - Tutti gli endpoint richiedono almeno il ruolo `USER` o `ADMIN`
 - L'endpoint `GET /users` richiede il ruolo `ADMIN`
 
 #### GET `/users`
 
-Ottiene tutti gli utenti registrati nel sistema.
+Ottiene tutti gli utenti registrati nel sistema con paginazione.
 
 **Ruolo richiesto:** `ADMIN`
 
 **Headers:** `Authorization: Bearer <token>`
+
+**Query Parameters:**
+
+- `page` (opzionale, default: `1`) - Numero di pagina (min: 1)
+- `limit` (opzionale, default: `10`) - Numero di elementi per pagina (min: 1, max: 100)
+
+**Ordinamento:** Gli utenti sono ordinati per `id` in ordine crescente.
 
 **Response:** `200 OK`
 
@@ -365,27 +398,42 @@ Ottiene tutti gli utenti registrati nel sistema.
 {
   "statusCode": 200,
   "message": "Success",
-  "data": [
-    {
-      "id": 1,
-      "nome": "Mario Rossi",
-      "email": "mario@example.com",
-      "role": "USER",
-      "createdAt": "2024-01-01T10:00:00Z",
-      "updatedAt": "2024-01-01T10:00:00Z"
-    },
-    {
-      "id": 2,
-      "nome": "Admin User",
-      "email": "admin@example.com",
-      "role": "ADMIN",
-      "createdAt": "2024-01-01T10:00:00Z",
-      "updatedAt": "2024-01-01T10:00:00Z"
-    }
-  ],
+  "data": {
+    "content": [
+      {
+        "id": 1,
+        "nome": "Mario Rossi",
+        "email": "mario@example.com",
+        "role": "USER",
+        "createdAt": "2024-01-01T10:00:00Z",
+        "updatedAt": "2024-01-01T10:00:00Z"
+      },
+      {
+        "id": 2,
+        "nome": "Admin User",
+        "email": "admin@example.com",
+        "role": "ADMIN",
+        "createdAt": "2024-01-01T10:00:00Z",
+        "updatedAt": "2024-01-01T10:00:00Z"
+      }
+    ],
+    "currentPage": 1,
+    "limit": 10,
+    "totalElements": 15,
+    "totalPages": 2,
+    "first": true,
+    "last": false,
+    "hasNext": true,
+    "hasPrevious": false
+  },
   "timestamp": "2024-01-01T10:00:00Z"
 }
 ```
+
+**Note:**
+
+- La paginazione è 1-based (la prima pagina è `page=1`)
+- Esempio: `GET /users?page=2&limit=5` per ottenere la seconda pagina di 5 utenti
 
 #### GET `/users/profile`
 
@@ -544,6 +592,71 @@ L'applicazione utilizza **Jakarta Validation** per validare i dati in ingresso:
 - **TodoUpdateDto:**
   - `title`: Pattern (opzionale), Size(min=4)
   - `completed`: Boolean (opzionale)
+
+## 📄 Paginazione
+
+L'applicazione utilizza **Spring Data Pagination** per gestire grandi quantità di dati in modo efficiente. Gli endpoint che restituiscono liste di elementi supportano la paginazione tramite query parameters.
+
+### Endpoint con Paginazione
+
+- **GET `/todos`** - Lista todo dell'utente autenticato
+- **GET `/users`** - Lista tutti gli utenti (solo ADMIN)
+
+### Parametri di Paginazione
+
+- `page` (opzionale, default: `1`) - Numero di pagina (1-based, minimo: 1)
+- `limit` (opzionale, default: `10`) - Numero di elementi per pagina (minimo: 1, massimo: 100)
+
+### Filtri Opzionali
+
+- **GET `/todos`** supporta anche il parametro `completed` (Boolean) per filtrare i todo per stato di completamento
+
+### Struttura Risposta Paginata
+
+Tutte le risposte paginate utilizzano il DTO `PageResponse<T>` che contiene:
+
+```json
+{
+  "content": [...],           // Array di elementi della pagina corrente
+  "currentPage": 1,           // Numero della pagina corrente (1-based)
+  "limit": 10,               // Numero di elementi per pagina
+  "totalElements": 25,        // Totale elementi in tutte le pagine
+  "totalPages": 3,            // Totale pagine disponibili
+  "first": true,              // Se è la prima pagina
+  "last": false,              // Se è l'ultima pagina
+  "hasNext": true,            // Se esiste una pagina successiva
+  "hasPrevious": false        // Se esiste una pagina precedente
+}
+```
+
+### Ordinamento
+
+- **GET `/todos`**: Ordinati per `updatedAt` in ordine decrescente (più recenti prima)
+- **GET `/users`**: Ordinati per `id` in ordine crescente
+
+### Esempi di Utilizzo
+
+```bash
+# Prima pagina con 10 elementi (default)
+GET /todos
+
+# Seconda pagina con 5 elementi
+GET /todos?page=2&limit=5
+
+# Prima pagina di todo non completati
+GET /todos?page=1&limit=10&completed=false
+
+# Lista utenti, terza pagina con 20 elementi
+GET /users?page=3&limit=20
+```
+
+### Vantaggi
+
+- ✅ **Performance**: Carica solo i dati necessari per la pagina richiesta
+- ✅ **Scalabilità**: Gestisce grandi quantità di dati senza problemi di memoria
+- ✅ **Flessibilità**: Parametri configurabili per adattarsi a diverse esigenze
+- ✅ **Navigazione**: Metadati completi per implementare la navigazione tra pagine
+- ✅ **Filtri**: Supporto per filtri opzionali (es: `completed` per i todo)
 
 ## 🔒 Gestione Errori
 
@@ -726,17 +839,17 @@ Il sistema supporta due ruoli definiti nell'enum `Role`:
 
 ### Endpoint e Autorizzazioni
 
-| Endpoint | Metodo | Ruolo Richiesto | Descrizione |
-|----------|--------|-----------------|-------------|
-| `/auth/register` | POST | Nessuno | Registrazione pubblica |
-| `/auth/login` | POST | Nessuno | Login pubblico |
-| `/auth/refresh-token` | POST | Nessuno (richiede refresh token) | Refresh token |
-| `/auth/logout` | DELETE | USER o ADMIN | Logout |
-| `/todos` | GET, POST | USER o ADMIN | Gestione todo |
-| `/todos/{id}` | GET, PATCH, DELETE | USER o ADMIN | Operazioni su singolo todo |
-| `/users` | GET | **ADMIN** | Lista tutti gli utenti |
-| `/users/profile` | GET | USER o ADMIN | Profilo utente autenticato |
-| `/users` | DELETE | USER o ADMIN | Elimina account utente |
+| Endpoint              | Metodo             | Ruolo Richiesto                  | Descrizione                |
+| --------------------- | ------------------ | -------------------------------- | -------------------------- |
+| `/auth/register`      | POST               | Nessuno                          | Registrazione pubblica     |
+| `/auth/login`         | POST               | Nessuno                          | Login pubblico             |
+| `/auth/refresh-token` | POST               | Nessuno (richiede refresh token) | Refresh token              |
+| `/auth/logout`        | DELETE             | USER o ADMIN                     | Logout                     |
+| `/todos`              | GET, POST          | USER o ADMIN                     | Gestione todo              |
+| `/todos/{id}`         | GET, PATCH, DELETE | USER o ADMIN                     | Operazioni su singolo todo |
+| `/users`              | GET                | **ADMIN**                        | Lista tutti gli utenti     |
+| `/users/profile`      | GET                | USER o ADMIN                     | Profilo utente autenticato |
+| `/users`              | DELETE             | USER o ADMIN                     | Elimina account utente     |
 
 ### Esempio di Utilizzo
 
@@ -745,13 +858,13 @@ Il sistema supporta due ruoli definiti nell'enum `Role`:
 @RequestMapping("/users")
 @PreAuthorize("hasAnyRole('USER', 'ADMIN')")  // Autorizzazione a livello di classe
 public class UserController {
-    
+
     @GetMapping()
     @PreAuthorize("hasRole('ADMIN')")  // Autorizzazione a livello di metodo
     public ResponseEntity<...> findAll() {
         // Solo ADMIN può accedere
     }
-    
+
     @GetMapping("/profile")
     public ResponseEntity<...> getProfile() {
         // USER o ADMIN possono accedere (eredita dalla classe)
