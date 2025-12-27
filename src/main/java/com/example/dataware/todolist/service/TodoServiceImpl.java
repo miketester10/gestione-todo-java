@@ -1,7 +1,9 @@
 package com.example.dataware.todolist.service;
 
-import java.util.List;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -25,9 +27,13 @@ public class TodoServiceImpl implements TodoService {
     private final UserService userService;
 
     @Override
-    public List<Todo> findAll(String email) {
+    public Page<Todo> findAll(String email, int page, int limit, Boolean completed) {
         User user = userService.findOne(email);
-        return todoRepository.findAllByUser(user);
+        Pageable pageable = PageRequest.of(page, limit, Sort.by(Sort.Direction.DESC, "updatedAt"));
+        if (completed == null) {
+            return todoRepository.findAllByUser(user, pageable);
+        }
+        return todoRepository.findAllByUserAndCompleted(user, completed, pageable);
     }
 
     @Override

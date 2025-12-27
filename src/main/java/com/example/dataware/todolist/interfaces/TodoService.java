@@ -1,14 +1,13 @@
 package com.example.dataware.todolist.interfaces;
 
-import java.util.List;
-
+import org.springframework.data.domain.Page;
 import com.example.dataware.todolist.dto.validator.TodoDto;
 import com.example.dataware.todolist.dto.validator.TodoUpdateDto;
 import com.example.dataware.todolist.entity.Todo;
 
 public interface TodoService {
 
-    List<Todo> findAll(String email);
+    Page<Todo> findAll(String email, int page, int limit, Boolean completed);
 
     Todo findOne(Long todoId, String email);
 

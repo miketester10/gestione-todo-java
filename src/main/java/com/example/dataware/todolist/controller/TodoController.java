@@ -1,6 +1,6 @@
 package com.example.dataware.todolist.controller;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.example.dataware.todolist.dto.response.TodoResponse;
 import com.example.dataware.todolist.dto.validator.TodoDto;
@@ -23,6 +24,8 @@ import com.example.dataware.todolist.util.SuccessResponse;
 import com.example.dataware.todolist.util.SuccessResponseBuilder;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -37,13 +40,15 @@ public class TodoController {
     private final SuccessResponseBuilder apiResponseBuilder;
 
     @GetMapping()
-    public ResponseEntity<SuccessResponse<List<TodoResponse>>> findAll(@AuthenticationPrincipal JwtPayload jwtPayload) {
+    public ResponseEntity<SuccessResponse<Page<TodoResponse>>> findAll(
+            @AuthenticationPrincipal JwtPayload jwtPayload,
+            @RequestParam(defaultValue = "1") @Min(1) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int limit,
+            @RequestParam(required = false) Boolean completed) {
 
-        List<Todo> todos = todoService.findAll(jwtPayload.getEmail());
-        List<TodoResponse> todoResponse = todos
-                .stream()
-                .map(todo -> todoMapper.toDTO(todo))
-                .toList();
+        page = page - 1;
+        Page<Todo> todos = todoService.findAll(jwtPayload.getEmail(), page, limit, completed);
+        Page<TodoResponse> todoResponse = todos.map(todo -> todoMapper.toDTO(todo));
         return apiResponseBuilder.success(todoResponse, HttpStatus.OK);
     }
 
