@@ -1,4 +1,4 @@
-package com.example.dataware.todolist.dto;
+package com.example.dataware.todolist.dto.validator;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

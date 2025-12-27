@@ -9,9 +9,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.dataware.todolist.dto.LoginDto;
 import com.example.dataware.todolist.dto.response.TokenResponse;
 import com.example.dataware.todolist.dto.response.UserResponse;
+import com.example.dataware.todolist.dto.validator.LoginDto;
 import com.example.dataware.todolist.dto.validator.UserDto;
 import com.example.dataware.todolist.entity.User;
 import com.example.dataware.todolist.interfaces.AuthService;

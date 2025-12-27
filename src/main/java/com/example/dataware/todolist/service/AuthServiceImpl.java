@@ -4,8 +4,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import com.example.dataware.todolist.dto.LoginDto;
+
 import com.example.dataware.todolist.dto.response.TokenResponse;
+import com.example.dataware.todolist.dto.validator.LoginDto;
 import com.example.dataware.todolist.dto.validator.UserDto;
 import com.example.dataware.todolist.entity.User;
 import com.example.dataware.todolist.interfaces.AuthService;

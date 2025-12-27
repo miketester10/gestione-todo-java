@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.example.dataware.todolist.dto.response.PageResponse;
 import com.example.dataware.todolist.dto.response.TodoResponse;
 import com.example.dataware.todolist.dto.validator.TodoDto;
 import com.example.dataware.todolist.dto.validator.TodoUpdateDto;
@@ -40,7 +41,7 @@ public class TodoController {
     private final SuccessResponseBuilder apiResponseBuilder;
 
     @GetMapping()
-    public ResponseEntity<SuccessResponse<Page<TodoResponse>>> findAll(
+    public ResponseEntity<SuccessResponse<PageResponse<TodoResponse>>> findAll(
             @AuthenticationPrincipal JwtPayload jwtPayload,
             @RequestParam(defaultValue = "1") @Min(1) int page,
             @RequestParam(defaultValue = "10") @Min(1) @Max(100) int limit,
@@ -48,8 +49,9 @@ public class TodoController {
 
         page = page - 1;
         Page<Todo> todos = todoService.findAll(jwtPayload.getEmail(), page, limit, completed);
-        Page<TodoResponse> todoResponse = todos.map(todo -> todoMapper.toDTO(todo));
-        return apiResponseBuilder.success(todoResponse, HttpStatus.OK);
+        Page<TodoResponse> todoResponsePage = todos.map(todo -> todoMapper.toDTO(todo));
+        PageResponse<TodoResponse> pageResponse = PageResponse.of(todoResponsePage);
+        return apiResponseBuilder.success(pageResponse, HttpStatus.OK);
     }
 
     @GetMapping("/{todoId}")
