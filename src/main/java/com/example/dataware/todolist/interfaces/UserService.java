@@ -1,12 +1,12 @@
 package com.example.dataware.todolist.interfaces;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
 
 import com.example.dataware.todolist.entity.User;
 
 public interface UserService {
 
-    List<User> findAll();
+    Page<User> findAll(int page, int limit);
 
     User findOne(String email);
 
