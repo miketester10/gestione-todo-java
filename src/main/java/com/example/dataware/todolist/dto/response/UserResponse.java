@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
-import java.util.List;
+// import java.util.List;
 
 @Builder
 @Getter
@@ -19,7 +19,6 @@ public class UserResponse {
     private String nome;
     private String email;
     private String role;
-    private List<TodoSimpleResponse> todos;
     private Instant createdAt;
     private Instant updatedAt;
 }

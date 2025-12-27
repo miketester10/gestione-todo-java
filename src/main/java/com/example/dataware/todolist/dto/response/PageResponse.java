@@ -4,17 +4,19 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 /**
  * DTO per la paginazione che fornisce una struttura JSON stabile.
  * Evita il warning di Spring Data sulla serializzazione di PageImpl.
  */
-@Data
 @Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class PageResponse<T> {

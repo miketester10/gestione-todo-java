@@ -17,7 +17,6 @@ public class TodoResponse {
     private Long id;
     private String title;
     private Boolean completed;
-    private UserSimpleResponse user;
     private Instant createdAt;
     private Instant updatedAt;
 
