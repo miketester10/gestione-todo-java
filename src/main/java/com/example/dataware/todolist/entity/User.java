@@ -51,7 +51,7 @@ public class User extends BaseEntity {
     private List<Todo> todos = new ArrayList<>();
 
     @PrePersist // Imposta il ruolo USER di default prima di salvare l'entità nel DB
-    public void prePersit() {
+    public void prePersist() {
         if (this.role == null) {
             this.role = Role.USER;
         }
