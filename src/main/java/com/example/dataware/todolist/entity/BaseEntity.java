@@ -33,4 +33,21 @@ public abstract class BaseEntity {
     @UpdateTimestamp
     @Column(nullable = false)
     private Instant updatedAt;
+
+    @Override
+    public boolean equals(Object object) {
+    if (this == object)
+    return true;
+    if (object == null || this.getClass() != object.getClass())
+    return false;
+
+    BaseEntity that = (BaseEntity) object;
+
+    return this.id != null && this.id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+    return this.getClass().hashCode();
+    }
 }
