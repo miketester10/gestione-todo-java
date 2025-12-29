@@ -52,11 +52,12 @@ src/main/java/com/example/dataware/todolist/
 │   │   └── TodoUpdateDto.java       # DTO validazione aggiornamento todo
 │   └── response/
 │       ├── UserResponse.java        # Response utente completo
-│       ├── UserSimpleResponse.java  # Response utente semplificato
 │       ├── TodoResponse.java        # Response todo completo
-│       ├── TodoSimpleResponse.java  # Response todo semplificato
 │       ├── TokenResponse.java       # Response con accessToken e refreshToken
-│       └── PageResponse.java        # DTO per risposte paginate
+│       ├── PageResponse.java        # DTO per risposte paginate
+│       └── builder/
+│           ├── SuccessResponse.java         # Modello risposta successo
+│           └── SuccessResponseBuilder.java  # Builder per risposte di successo
 ├── entity/
 │   ├── BaseEntity.java              # Entità base con id, createdAt, updatedAt
 │   ├── enums/
@@ -87,14 +88,11 @@ src/main/java/com/example/dataware/todolist/
 │   ├── AuthService.java             # Interfaccia servizio autenticazione
 │   ├── TodoService.java             # Interfaccia servizio todo
 │   └── UserService.java             # Interfaccia servizio utente
-├── service/
-│   ├── AuthServiceImpl.java         # Implementazione servizio autenticazione
-│   ├── EncryptionService.java        # Servizio crittografia/decrittografia refresh token
-│   ├── TodoServiceImpl.java         # Implementazione servizio todo
-│   └── UserServiceImpl.java         # Implementazione servizio utente
-└── util/
-    ├── SuccessResponse.java         # Modello risposta successo
-    └── SuccessResponseBuilder.java  # Builder per risposte di successo
+└── service/
+    ├── AuthServiceImpl.java         # Implementazione servizio autenticazione
+    ├── EncryptionService.java       # Servizio crittografia/decrittografia refresh token
+    ├── TodoServiceImpl.java         # Implementazione servizio todo
+    └── UserServiceImpl.java         # Implementazione servizio utente
 ```
 
 ## 🔐 Sistema di Autenticazione e Autorizzazione
@@ -683,7 +681,6 @@ Il progetto utilizza **MapStruct** per la conversione automatica tra entità JPA
    ```java
    @Mapper(componentModel = "spring")
    public interface TodoMapper {
-       TodoSimpleResponse toSimpleDTO(Todo todo);
        TodoResponse toDTO(Todo todo);
    }
    ```
@@ -713,8 +710,8 @@ MapStruct è configurato nel `pom.xml`:
 MapStruct gestisce automaticamente:
 
 - **Campi semplici**: `id`, `title`, `completed` → mappati per nome
-- **Tipi annidati**: `User` → `UserSimpleResponse` (genera metodo helper automaticamente)
-- **Liste**: `List<Todo>` → `List<TodoSimpleResponse>` (conversione automatica)
+- **Tipi annidati**: `User` → `UserResponse` (genera metodo helper automaticamente)
+- **Liste**: `List<Todo>` → `List<TodoResponse>` (conversione automatica)
 
 Le implementazioni generate sono visibili in `target/generated-sources/annotations/com/example/dataware/todolist/mapper/` dopo la compilazione.
 

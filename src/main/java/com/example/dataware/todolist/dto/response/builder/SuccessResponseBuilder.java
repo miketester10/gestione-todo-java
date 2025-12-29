@@ -1,4 +1,4 @@
-package com.example.dataware.todolist.util;
+package com.example.dataware.todolist.dto.response.builder;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

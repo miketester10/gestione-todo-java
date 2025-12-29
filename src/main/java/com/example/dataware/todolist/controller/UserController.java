@@ -13,12 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.dataware.todolist.dto.response.PageResponse;
 import com.example.dataware.todolist.dto.response.UserResponse;
+import com.example.dataware.todolist.dto.response.builder.SuccessResponse;
+import com.example.dataware.todolist.dto.response.builder.SuccessResponseBuilder;
 import com.example.dataware.todolist.entity.User;
 import com.example.dataware.todolist.interfaces.UserService;
 import com.example.dataware.todolist.jwt.JwtPayload;
 import com.example.dataware.todolist.mapper.UserMapper;
-import com.example.dataware.todolist.util.SuccessResponse;
-import com.example.dataware.todolist.util.SuccessResponseBuilder;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
