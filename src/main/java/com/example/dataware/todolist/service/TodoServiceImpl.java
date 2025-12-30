@@ -1,5 +1,7 @@
 package com.example.dataware.todolist.service;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,6 +16,7 @@ import com.example.dataware.todolist.entity.User;
 import com.example.dataware.todolist.interfaces.TodoService;
 import com.example.dataware.todolist.interfaces.UserService;
 import com.example.dataware.todolist.repository.TodoRepository;
+import com.example.dataware.todolist.util.sort.TodoSortableProperty;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,9 +30,29 @@ public class TodoServiceImpl implements TodoService {
     private final UserService userService;
 
     @Override
-    public Page<Todo> findAll(String email, int page, int limit, Boolean completed) {
+    public Page<Todo> findAll(String email, int page, int limit, Boolean completed, Sort sort) {
         User user = userService.findOne(email);
-        Pageable pageable = PageRequest.of(page, limit, Sort.by(Sort.Direction.DESC, "updatedAt"));
+
+        // fallback automatico se sort null o vuoto
+        // (esempio: /todos oppure /todos?sort=<empty>)
+        if (sort == null || !sort.isSorted()) {
+            sort = Sort.by("updatedAt").descending();
+        }
+
+        // validazione proprietà non valide
+        List<String> invalidFields = sort.stream()
+                .map(order -> order.getProperty())
+                .filter(property -> !TodoSortableProperty.isValid(property))
+                .toList();
+
+        if (!invalidFields.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Proprietà di ordinamento non valide: " + String.join(", ", invalidFields));
+        }
+
+        Pageable pageable = PageRequest.of(page, limit, sort);
+
+        // applica filtro completed se presente
         if (completed == null) {
             return todoRepository.findAllByUser(user, pageable);
         }

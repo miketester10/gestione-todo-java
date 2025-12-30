@@ -1,6 +1,7 @@
 package com.example.dataware.todolist.controller;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,6 +28,7 @@ import com.example.dataware.todolist.mapper.TodoMapper;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -45,10 +47,11 @@ public class TodoController {
             @AuthenticationPrincipal JwtPayload jwtPayload,
             @RequestParam(defaultValue = "1") @Min(1) int page,
             @RequestParam(defaultValue = "10") @Min(1) @Max(100) int limit,
-            @RequestParam(required = false) Boolean completed) {
+            @RequestParam(required = false) Boolean completed,
+            Sort sort) {
 
         page = page - 1;
-        Page<Todo> todos = todoService.findAll(jwtPayload.getEmail(), page, limit, completed);
+        Page<Todo> todos = todoService.findAll(jwtPayload.getEmail(), page, limit, completed, sort);
         Page<TodoResponse> todoResponsePage = todos.map(todo -> todoMapper.toDTO(todo));
         PageResponse<TodoResponse> pageResponse = PageResponse.of(todoResponsePage);
         return apiResponseBuilder.success(pageResponse, HttpStatus.OK);
@@ -57,7 +60,7 @@ public class TodoController {
     @GetMapping("/{todoId}")
     public ResponseEntity<SuccessResponse<TodoResponse>> findOne(
             @AuthenticationPrincipal JwtPayload jwtPayload,
-            @PathVariable Long todoId) {
+            @Positive @PathVariable Long todoId) {
 
         Todo todo = todoService.findOne(todoId, jwtPayload.getEmail());
         TodoResponse todoResponse = todoMapper.toDTO(todo);
@@ -77,7 +80,7 @@ public class TodoController {
     @PatchMapping("/{todoId}")
     public ResponseEntity<SuccessResponse<TodoResponse>> update(
             @AuthenticationPrincipal JwtPayload jwtPayload,
-            @PathVariable Long todoId,
+            @Positive @PathVariable Long todoId,
             @Valid @RequestBody TodoUpdateDto todoUpdateDto) {
 
         log.debug(todoUpdateDto.toString());
@@ -88,7 +91,7 @@ public class TodoController {
 
     @DeleteMapping("/{todoId}")
     public ResponseEntity<SuccessResponse<Void>> delete(
-            @AuthenticationPrincipal JwtPayload jwtPayload,
+            @Positive @AuthenticationPrincipal JwtPayload jwtPayload,
             @PathVariable Long todoId) {
 
         todoService.delete(todoId, jwtPayload.getEmail());
