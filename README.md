@@ -88,11 +88,14 @@ src/main/java/com/example/dataware/todolist/
 │   ├── AuthService.java             # Interfaccia servizio autenticazione
 │   ├── TodoService.java             # Interfaccia servizio todo
 │   └── UserService.java             # Interfaccia servizio utente
-└── service/
-    ├── AuthServiceImpl.java         # Implementazione servizio autenticazione
-    ├── EncryptionService.java       # Servizio crittografia/decrittografia refresh token
-    ├── TodoServiceImpl.java         # Implementazione servizio todo
-    └── UserServiceImpl.java         # Implementazione servizio utente
+├── service/
+│   ├── AuthServiceImpl.java         # Implementazione servizio autenticazione
+│   ├── EncryptionService.java       # Servizio crittografia/decrittografia refresh token
+│   ├── TodoServiceImpl.java         # Implementazione servizio todo
+│   └── UserServiceImpl.java         # Implementazione servizio utente
+└── util/
+    └── sort/
+        └── TodoSortableProperty.java  # Enum proprietà ordinabili per i todo
 ```
 
 ## 🔐 Sistema di Autenticazione e Autorizzazione
@@ -272,8 +275,14 @@ Ottiene tutti i todo dell'utente autenticato con paginazione e filtro opzionale.
 - `page` (opzionale, default: `1`) - Numero di pagina (min: 1)
 - `limit` (opzionale, default: `10`) - Numero di elementi per pagina (min: 1, max: 100)
 - `completed` (opzionale) - Filtra per stato di completamento (`true` o `false`)
+- `sort` (opzionale) - Parametro di ordinamento nel formato Spring Data (es: `sort=title,asc` o `sort=updatedAt,desc`)
 
-**Ordinamento:** I todo sono ordinati per `updatedAt` in ordine decrescente (più recenti prima).
+**Ordinamento:**
+
+- Se non specificato, i todo sono ordinati per `updatedAt` in ordine decrescente (più recenti prima) per default
+- Le proprietà ordinabili sono: `id`, `title`, `completed`, `createdAt`, `updatedAt`
+- Formato: `sort=<proprietà>,<direzione>` dove direzione può essere `asc` (crescente) o `desc` (decrescente)
+- Esempi: `sort=title,asc`, `sort=createdAt,desc`, `sort=completed,asc&sort=title,desc` (ordinamento multiplo)
 
 **Response:** `200 OK`
 
@@ -308,7 +317,12 @@ Ottiene tutti i todo dell'utente autenticato con paginazione e filtro opzionale.
 
 - La paginazione è 1-based (la prima pagina è `page=1`)
 - Il parametro `completed` è opzionale: se non specificato, vengono restituiti tutti i todo
-- Esempio: `GET /todos?page=2&limit=5&completed=false` per ottenere la seconda pagina di 5 todo non completati
+- Il parametro `sort` è opzionale: se non specificato, viene utilizzato l'ordinamento di default (`updatedAt` decrescente)
+- Esempi:
+  - `GET /todos?page=2&limit=5&completed=false` - Seconda pagina di 5 todo non completati
+  - `GET /todos?sort=title,asc` - Todo ordinati per titolo crescente
+  - `GET /todos?sort=createdAt,desc&completed=true` - Todo completati ordinati per data di creazione decrescente
+  - `GET /todos?sort=completed,asc&sort=title,desc` - Ordinamento multiplo: prima per completamento, poi per titolo decrescente
 
 #### GET `/todos/{todoId}`
 
@@ -615,7 +629,11 @@ Tutte le risposte paginate utilizzano il DTO `PageResponse<T>` che contiene:
 
 ### Ordinamento
 
-- **GET `/todos`**: Ordinati per `updatedAt` in ordine decrescente (più recenti prima)
+- **GET `/todos`**:
+  - Default: Ordinati per `updatedAt` in ordine decrescente (più recenti prima) se non specificato
+  - Configurabile tramite parametro `sort` con proprietà: `id`, `title`, `completed`, `createdAt`, `updatedAt`
+  - Formato: `sort=<proprietà>,<direzione>` (es: `sort=title,asc`, `sort=createdAt,desc`)
+  - Supporta ordinamento multiplo: `sort=completed,asc&sort=title,desc`
 - **GET `/users`**: Ordinati per `id` in ordine crescente
 
 ### Esempi di Utilizzo
@@ -629,6 +647,15 @@ GET /todos?page=2&limit=5
 
 # Prima pagina di todo non completati
 GET /todos?page=1&limit=10&completed=false
+
+# Todo ordinati per titolo crescente
+GET /todos?sort=title,asc
+
+# Todo completati ordinati per data di creazione decrescente
+GET /todos?sort=createdAt,desc&completed=true
+
+# Ordinamento multiplo: prima per completamento, poi per titolo decrescente
+GET /todos?sort=completed,asc&sort=title,desc
 
 # Lista utenti, terza pagina con 20 elementi
 GET /users?page=3&limit=20
