@@ -84,15 +84,16 @@ src/main/java/com/example/dataware/todolist/
 ├── repository/
 │   ├── TodoRepository.java          # Repository JPA per Todo
 │   └── UserRepository.java          # Repository JPA per User
-├── interfaces/
-│   ├── AuthService.java             # Interfaccia servizio autenticazione
-│   ├── TodoService.java             # Interfaccia servizio todo
-│   └── UserService.java             # Interfaccia servizio utente
 ├── service/
-│   ├── AuthServiceImpl.java         # Implementazione servizio autenticazione
-│   ├── EncryptionService.java       # Servizio crittografia/decrittografia refresh token
-│   ├── TodoServiceImpl.java         # Implementazione servizio todo
-│   └── UserServiceImpl.java         # Implementazione servizio utente
+│   ├── interfaces/
+│   │   ├── AuthService.java         # Interfaccia servizio autenticazione
+│   │   ├── TodoService.java         # Interfaccia servizio todo
+│   │   └── UserService.java         # Interfaccia servizio utente
+│   ├── implementation/
+│   │   ├── AuthServiceImpl.java     # Implementazione servizio autenticazione
+│   │   ├── TodoServiceImpl.java     # Implementazione servizio todo
+│   │   └── UserServiceImpl.java     # Implementazione servizio utente
+│   └── EncryptionService.java       # Servizio crittografia/decrittografia refresh token
 └── util/
     └── sort/
         └── TodoSortableProperty.java  # Enum proprietà ordinabili per i todo
