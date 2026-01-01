@@ -13,6 +13,13 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
+
+import com.example.dataware.todolist.exception.custom.EmailConflictException;
+import com.example.dataware.todolist.exception.custom.InvalidCredentialsException;
+import com.example.dataware.todolist.exception.custom.InvalidSortablePropertyException;
+import com.example.dataware.todolist.exception.custom.TodoNotFoundException;
+import com.example.dataware.todolist.exception.custom.UserNotFoundException;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -23,6 +30,117 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+        /**
+         * Gestisce le eccezioni EmailConflictException lanciate
+         * dall'applicazione.
+         * Restituisce una risposta JSON pulita senza stack trace.
+         * 
+         * @param ex l'eccezione EmailConflictException
+         * @return ResponseEntity con la risposta di errore formattata
+         */
+        @ExceptionHandler(EmailConflictException.class)
+        public ResponseEntity<ErrorResponse> handleEmailConflictException(EmailConflictException ex) {
+
+                log.error("EmailConflictException: {} - {}", ex.getStatusCode(), ex.getMessage());
+
+                ErrorResponse errorResponse = ErrorResponse.builder()
+                                .statusCode(ex.getStatusCode())
+                                .error(ex.getErrorReasonPhrase())
+                                .message(ex.getMessage())
+                                .build();
+
+                return ResponseEntity.status(ex.getStatusCode()).body(errorResponse);
+        }
+
+        /**
+         * Gestisce le eccezioni InvalidCredentialsException lanciate
+         * dall'applicazione.
+         * Restituisce una risposta JSON pulita senza stack trace.
+         * 
+         * @param ex l'eccezione InvalidCredentialsException
+         * @return ResponseEntity con la risposta di errore formattata
+         */
+        @ExceptionHandler(InvalidCredentialsException.class)
+        public ResponseEntity<ErrorResponse> handleInvalidCredentialsException(InvalidCredentialsException ex) {
+
+                log.error("InvalidCredentialsException: {} - {}", ex.getStatusCode(), ex.getMessage());
+
+                ErrorResponse errorResponse = ErrorResponse.builder()
+                                .statusCode(ex.getStatusCode())
+                                .error(ex.getErrorReasonPhrase())
+                                .message(ex.getMessage())
+                                .build();
+
+                return ResponseEntity.status(ex.getStatusCode()).body(errorResponse);
+        }
+
+        /**
+         * Gestisce le eccezioni UserNotFoundException lanciate
+         * dall'applicazione.
+         * Restituisce una risposta JSON pulita senza stack trace.
+         * 
+         * @param ex l'eccezione UserNotFoundException
+         * @return ResponseEntity con la risposta di errore formattata
+         */
+        @ExceptionHandler(UserNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleUserNotFoundException(UserNotFoundException ex) {
+
+                log.error("UserNotFoundException: {} - {}", ex.getStatusCode(), ex.getMessage());
+
+                ErrorResponse errorResponse = ErrorResponse.builder()
+                                .statusCode(ex.getStatusCode())
+                                .error(ex.getErrorReasonPhrase())
+                                .message(ex.getMessage())
+                                .build();
+
+                return ResponseEntity.status(ex.getStatusCode()).body(errorResponse);
+        }
+
+        /**
+         * Gestisce le eccezioni TodoNotFoundException lanciate
+         * dall'applicazione.
+         * Restituisce una risposta JSON pulita senza stack trace.
+         * 
+         * @param ex l'eccezione TodoNotFoundException
+         * @return ResponseEntity con la risposta di errore formattata
+         */
+        @ExceptionHandler(TodoNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleTodoNotFoundException(TodoNotFoundException ex) {
+
+                log.error("TodoNotFoundException: {} - {}", ex.getStatusCode(), ex.getMessage());
+
+                ErrorResponse errorResponse = ErrorResponse.builder()
+                                .statusCode(ex.getStatusCode())
+                                .error(ex.getErrorReasonPhrase())
+                                .message(ex.getMessage())
+                                .build();
+
+                return ResponseEntity.status(ex.getStatusCode()).body(errorResponse);
+        }
+
+        /**
+         * Gestisce le eccezioni InvalidSortablePropertyException lanciate
+         * dall'applicazione.
+         * Restituisce una risposta JSON pulita senza stack trace.
+         * 
+         * @param ex l'eccezione InvalidSortablePropertyException
+         * @return ResponseEntity con la risposta di errore formattata
+         */
+        @ExceptionHandler(InvalidSortablePropertyException.class)
+        public ResponseEntity<ErrorResponse> handleInvalidSortablePropertyException(
+                        InvalidSortablePropertyException ex) {
+
+                log.error("InvalidSortablePropertyException: {} - {}", ex.getStatusCode(), ex.getMessage());
+
+                ErrorResponse errorResponse = ErrorResponse.builder()
+                                .statusCode(ex.getStatusCode())
+                                .error(ex.getErrorReasonPhrase())
+                                .message(ex.getMessage())
+                                .build();
+
+                return ResponseEntity.status(ex.getStatusCode()).body(errorResponse);
+        }
 
         /**
          * Gestisce le ResponseStatusException lanciate dall'applicazione.

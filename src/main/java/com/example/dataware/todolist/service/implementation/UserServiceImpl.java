@@ -4,10 +4,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import com.example.dataware.todolist.entity.User;
+import com.example.dataware.todolist.exception.custom.UserNotFoundException;
 import com.example.dataware.todolist.repository.UserRepository;
 import com.example.dataware.todolist.service.interfaces.UserService;
 
@@ -30,7 +29,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public User findOne(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Utente non trovato."));
+                .orElseThrow(() -> new UserNotFoundException("Utente non trovato."));
     }
 
     @Override
