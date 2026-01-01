@@ -1,4 +1,4 @@
-package com.example.dataware.todolist.interfaces;
+package com.example.dataware.todolist.service.interfaces;
 
 import org.springframework.data.domain.Page;
 

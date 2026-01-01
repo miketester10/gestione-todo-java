@@ -1,4 +1,4 @@
-package com.example.dataware.todolist.service;
+package com.example.dataware.todolist.service.implementation;
 
 import java.util.List;
 
@@ -13,9 +13,9 @@ import com.example.dataware.todolist.dto.validator.TodoDto;
 import com.example.dataware.todolist.dto.validator.TodoUpdateDto;
 import com.example.dataware.todolist.entity.Todo;
 import com.example.dataware.todolist.entity.User;
-import com.example.dataware.todolist.interfaces.TodoService;
-import com.example.dataware.todolist.interfaces.UserService;
 import com.example.dataware.todolist.repository.TodoRepository;
+import com.example.dataware.todolist.service.interfaces.TodoService;
+import com.example.dataware.todolist.service.interfaces.UserService;
 import com.example.dataware.todolist.util.sort.TodoSortableProperty;
 
 import lombok.RequiredArgsConstructor;

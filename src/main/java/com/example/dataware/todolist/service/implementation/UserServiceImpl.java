@@ -1,4 +1,4 @@
-package com.example.dataware.todolist.service;
+package com.example.dataware.todolist.service.implementation;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -8,8 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import com.example.dataware.todolist.entity.User;
-import com.example.dataware.todolist.interfaces.UserService;
 import com.example.dataware.todolist.repository.UserRepository;
+import com.example.dataware.todolist.service.interfaces.UserService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

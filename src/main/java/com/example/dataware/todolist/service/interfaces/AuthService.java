@@ -1,4 +1,4 @@
-package com.example.dataware.todolist.interfaces;
+package com.example.dataware.todolist.service.interfaces;
 
 import com.example.dataware.todolist.dto.response.TokenResponse;
 import com.example.dataware.todolist.dto.validator.LoginDto;
