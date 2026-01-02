@@ -66,7 +66,14 @@ src/main/java/com/example/dataware/todolist/
 │   └── Todo.java                    # Entità todo
 ├── exception/
 │   ├── ErrorResponse.java           # Modello risposta errore
-│   └── GlobalExceptionHandler.java  # Gestore globale eccezioni
+│   ├── GlobalExceptionHandler.java  # Gestore globale eccezioni
+│   └── custom/
+│       ├── BaseCustomException.java         # Interfaccia comune per eccezioni custom
+│       ├── EmailConflictException.java      # Eccezione conflitto email
+│       ├── InvalidCredentialsException.java # Eccezione credenziali non valide
+│       ├── InvalidSortablePropertyException.java # Eccezione proprietà ordinabile non valida
+│       ├── TodoNotFoundException.java       # Eccezione todo non trovato
+│       └── UserNotFoundException.java       # Eccezione utente non trovato
 ├── jwt/
 │   ├── enums/
 │   │   └── TokenType.java           # Enum per distinguere ACCESS e REFRESH token
@@ -672,23 +679,55 @@ GET /users?page=3&limit=20
 
 ## 🔒 Gestione Errori
 
-L'applicazione utilizza un **GlobalExceptionHandler** che gestisce:
+L'applicazione utilizza un **GlobalExceptionHandler** rifattorizzato che gestisce tutte le eccezioni in modo centralizzato e standardizzato.
+
+### Eccezioni Custom
+
+Tutte le eccezioni custom dell'applicazione implementano l'interfaccia **`BaseCustomException`**, che definisce i metodi comuni (`getStatusCode()`, `getErrorReasonPhrase()`, `getMessage()`) per una gestione uniforme:
+
+- `EmailConflictException` - Conflitto email durante la registrazione (409 Conflict)
+- `InvalidCredentialsException` - Credenziali non valide durante il login (400 Bad Request)
+- `UserNotFoundException` - Utente non trovato (404 Not Found)
+- `TodoNotFoundException` - Todo non trovato (404 Not Found)
+- `InvalidSortablePropertyException` - Proprietà di ordinamento non valida (400 Bad Request)
+
+### Eccezioni Standard
+
+Il gestore gestisce anche le eccezioni standard di Spring:
 
 - `ResponseStatusException` - Eccezioni personalizzate con codice HTTP
-- `MethodArgumentNotValidException` - Errori di validazione
+- `MethodArgumentNotValidException` - Errori di validazione dei DTO
 - `HttpMessageNotReadableException` - Body mancante o non valido
-- `MethodArgumentTypeMismatchException` - Tipo parametro non valido
-- `Exception` - Errori generici
+- `MethodArgumentTypeMismatchException` - Tipo parametro non valido (PathVariable/RequestParam)
+- `AuthorizationDeniedException` - Accesso negato per autorizzazione (403 Forbidden)
+- `Exception` - Errori generici non gestiti (500 Internal Server Error)
 
-Tutte le risposte di errore seguono il formato:
+### Architettura
+
+Il `GlobalExceptionHandler` è stato rifattorizzato per eliminare la duplicazione del codice:
+
+- **Metodo helper `handleCustomException()`**: Gestisce tutte le eccezioni custom che implementano `BaseCustomException`
+- **Metodo helper `buildErrorResponse()`**: Costruisce la `ResponseEntity` con `ErrorResponse` in modo standardizzato
+- **Logging consistente**: Tutti i log utilizzano il nome della classe dell'eccezione per tracciabilità
+
+### Formato Risposta Errore
+
+Tutte le risposte di errore seguono il formato standardizzato:
 
 ```json
 {
   "statusCode": 400,
   "error": "Bad Request",
-  "message": "Messaggio di errore"
+  "message": "Messaggio di errore",
+  "timestamp": "2024-01-01T10:00:00Z"
 }
 ```
+
+**Note:**
+
+- Il campo `message` può essere una `String` o un `Object` (es: `Map<String, String>` per errori di validazione multipli)
+- Il campo `timestamp` viene aggiunto automaticamente in formato UTC
+- Nessuno stack trace viene esposto nelle risposte per motivi di sicurezza
 
 ## 🗺️ MapStruct - Mapping Automatico
 
