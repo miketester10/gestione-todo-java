@@ -5,7 +5,7 @@ import org.springframework.http.HttpStatus;
 import lombok.Getter;
 
 @Getter
-public class InvalidCredentialsException extends RuntimeException {
+public class InvalidCredentialsException extends RuntimeException implements BaseCustomException {
     private final int statusCode = HttpStatus.BAD_REQUEST.value();
     private final String errorReasonPhrase = HttpStatus.BAD_REQUEST.getReasonPhrase();
 

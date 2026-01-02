@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.example.dataware.todolist.exception.custom.BaseCustomException;
 import com.example.dataware.todolist.exception.custom.EmailConflictException;
 import com.example.dataware.todolist.exception.custom.InvalidCredentialsException;
 import com.example.dataware.todolist.exception.custom.InvalidSortablePropertyException;
@@ -41,16 +42,7 @@ public class GlobalExceptionHandler {
          */
         @ExceptionHandler(EmailConflictException.class)
         public ResponseEntity<ErrorResponse> handleEmailConflictException(EmailConflictException ex) {
-
-                log.error("EmailConflictException: {} - {}", ex.getStatusCode(), ex.getMessage());
-
-                ErrorResponse errorResponse = ErrorResponse.builder()
-                                .statusCode(ex.getStatusCode())
-                                .error(ex.getErrorReasonPhrase())
-                                .message(ex.getMessage())
-                                .build();
-
-                return ResponseEntity.status(ex.getStatusCode()).body(errorResponse);
+                return handleCustomException(ex, EmailConflictException.class.getSimpleName());
         }
 
         /**
@@ -63,16 +55,7 @@ public class GlobalExceptionHandler {
          */
         @ExceptionHandler(InvalidCredentialsException.class)
         public ResponseEntity<ErrorResponse> handleInvalidCredentialsException(InvalidCredentialsException ex) {
-
-                log.error("InvalidCredentialsException: {} - {}", ex.getStatusCode(), ex.getMessage());
-
-                ErrorResponse errorResponse = ErrorResponse.builder()
-                                .statusCode(ex.getStatusCode())
-                                .error(ex.getErrorReasonPhrase())
-                                .message(ex.getMessage())
-                                .build();
-
-                return ResponseEntity.status(ex.getStatusCode()).body(errorResponse);
+                return handleCustomException(ex, InvalidCredentialsException.class.getSimpleName());
         }
 
         /**
@@ -85,16 +68,7 @@ public class GlobalExceptionHandler {
          */
         @ExceptionHandler(UserNotFoundException.class)
         public ResponseEntity<ErrorResponse> handleUserNotFoundException(UserNotFoundException ex) {
-
-                log.error("UserNotFoundException: {} - {}", ex.getStatusCode(), ex.getMessage());
-
-                ErrorResponse errorResponse = ErrorResponse.builder()
-                                .statusCode(ex.getStatusCode())
-                                .error(ex.getErrorReasonPhrase())
-                                .message(ex.getMessage())
-                                .build();
-
-                return ResponseEntity.status(ex.getStatusCode()).body(errorResponse);
+                return handleCustomException(ex, UserNotFoundException.class.getSimpleName());
         }
 
         /**
@@ -107,16 +81,7 @@ public class GlobalExceptionHandler {
          */
         @ExceptionHandler(TodoNotFoundException.class)
         public ResponseEntity<ErrorResponse> handleTodoNotFoundException(TodoNotFoundException ex) {
-
-                log.error("TodoNotFoundException: {} - {}", ex.getStatusCode(), ex.getMessage());
-
-                ErrorResponse errorResponse = ErrorResponse.builder()
-                                .statusCode(ex.getStatusCode())
-                                .error(ex.getErrorReasonPhrase())
-                                .message(ex.getMessage())
-                                .build();
-
-                return ResponseEntity.status(ex.getStatusCode()).body(errorResponse);
+                return handleCustomException(ex, TodoNotFoundException.class.getSimpleName());
         }
 
         /**
@@ -130,16 +95,7 @@ public class GlobalExceptionHandler {
         @ExceptionHandler(InvalidSortablePropertyException.class)
         public ResponseEntity<ErrorResponse> handleInvalidSortablePropertyException(
                         InvalidSortablePropertyException ex) {
-
-                log.error("InvalidSortablePropertyException: {} - {}", ex.getStatusCode(), ex.getMessage());
-
-                ErrorResponse errorResponse = ErrorResponse.builder()
-                                .statusCode(ex.getStatusCode())
-                                .error(ex.getErrorReasonPhrase())
-                                .message(ex.getMessage())
-                                .build();
-
-                return ResponseEntity.status(ex.getStatusCode()).body(errorResponse);
+                return handleCustomException(ex, InvalidSortablePropertyException.class.getSimpleName());
         }
 
         /**
@@ -151,21 +107,14 @@ public class GlobalExceptionHandler {
          */
         @ExceptionHandler(ResponseStatusException.class)
         public ResponseEntity<ErrorResponse> handleResponseStatusException(ResponseStatusException ex) {
-
                 int statusCode = ex.getStatusCode().value();
                 HttpStatus httpStatus = HttpStatus.resolve(statusCode);
                 String errorPhrase = httpStatus.getReasonPhrase();
                 String message = ex.getReason();
 
-                log.error("ResponseStatusException: {} - {}", statusCode, message);
+                log.error("{}: {} - {}", ResponseStatusException.class.getSimpleName(), statusCode, message);
 
-                ErrorResponse errorResponse = ErrorResponse.builder()
-                                .statusCode(statusCode)
-                                .error(errorPhrase)
-                                .message(message)
-                                .build();
-
-                return ResponseEntity.status(statusCode).body(errorResponse);
+                return buildErrorResponse(statusCode, errorPhrase, message);
         }
 
         /**
@@ -177,7 +126,6 @@ public class GlobalExceptionHandler {
          */
         @ExceptionHandler(MethodArgumentNotValidException.class)
         public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {
-
                 int statusCode = HttpStatus.BAD_REQUEST.value();
                 String error = HttpStatus.BAD_REQUEST.getReasonPhrase();
 
@@ -188,15 +136,10 @@ public class GlobalExceptionHandler {
                         validationErrors.put(fieldName, errorMessage);
                 });
 
-                log.error("Errore di validazione: {} - {}", statusCode, validationErrors);
+                log.error("{}: {} - {}", MethodArgumentNotValidException.class.getSimpleName(), statusCode,
+                                validationErrors);
 
-                ErrorResponse errorResponse = ErrorResponse.builder()
-                                .statusCode(statusCode)
-                                .error(error)
-                                .message(validationErrors)
-                                .build();
-
-                return ResponseEntity.status(statusCode).body(errorResponse);
+                return buildErrorResponse(statusCode, error, validationErrors);
         }
 
         /**
@@ -211,19 +154,12 @@ public class GlobalExceptionHandler {
         @ExceptionHandler(HttpMessageNotReadableException.class)
         public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(
                         HttpMessageNotReadableException ex) {
-
                 int statusCode = HttpStatus.BAD_REQUEST.value();
                 String error = HttpStatus.BAD_REQUEST.getReasonPhrase();
 
-                log.error("Errore HttpMessageNotReadable: {} - {}", statusCode, error);
+                log.error("{}: {} - {}", HttpMessageNotReadableException.class.getSimpleName(), statusCode, error);
 
-                ErrorResponse errorResponse = ErrorResponse.builder()
-                                .statusCode(statusCode)
-                                .error(error)
-                                .message("Devi inviare un body valido insieme alla richiesta HTTP")
-                                .build();
-
-                return ResponseEntity.status(statusCode).body(errorResponse);
+                return buildErrorResponse(statusCode, error, "Devi inviare un body valido insieme alla richiesta HTTP");
         }
 
         /**
@@ -237,20 +173,15 @@ public class GlobalExceptionHandler {
         @ExceptionHandler(MethodArgumentTypeMismatchException.class)
         public ResponseEntity<ErrorResponse> handleTypeMismatch(
                         MethodArgumentTypeMismatchException ex) {
-
                 int statusCode = HttpStatus.BAD_REQUEST.value();
                 String error = HttpStatus.BAD_REQUEST.getReasonPhrase();
 
-                log.error("Errore TypeMismatch: {} - {}", statusCode, error);
+                log.error("{}: {} - {}", MethodArgumentTypeMismatchException.class.getSimpleName(), statusCode, error);
 
-                ErrorResponse errorResponse = ErrorResponse.builder()
-                                .statusCode(statusCode)
-                                .error(error)
-                                .message("Parametro [" + ex.getName()
-                                                + "] non valido nel percorso URL. Assicurati di utilizzare il formato corretto.")
-                                .build();
+                String message = "Parametro [" + ex.getName()
+                                + "] non valido nel percorso URL. Assicurati di utilizzare il formato corretto.";
 
-                return ResponseEntity.status(statusCode).body(errorResponse);
+                return buildErrorResponse(statusCode, error, message);
         }
 
         /**
@@ -264,19 +195,13 @@ public class GlobalExceptionHandler {
         @ExceptionHandler(AuthorizationDeniedException.class)
         public ResponseEntity<ErrorResponse> handleAuthorizationDenied(
                         AuthorizationDeniedException ex) {
-
                 int statusCode = HttpStatus.FORBIDDEN.value();
                 String error = HttpStatus.FORBIDDEN.getReasonPhrase();
 
-                log.error("Errore AuthorizationDenied: {} - {}", statusCode, error);
+                log.error("{}: {} - {}", AuthorizationDeniedException.class.getSimpleName(), statusCode, error);
 
-                ErrorResponse errorResponse = ErrorResponse.builder()
-                                .statusCode(statusCode)
-                                .error(error)
-                                .message("Accesso negato. Non hai i permessi necessari per eseguire questa operazione.")
-                                .build();
-
-                return ResponseEntity.status(statusCode).body(errorResponse);
+                return buildErrorResponse(statusCode, error,
+                                "Accesso negato. Non hai i permessi necessari per eseguire questa operazione.");
         }
 
         /**
@@ -288,16 +213,41 @@ public class GlobalExceptionHandler {
          */
         @ExceptionHandler(Exception.class)
         public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
-
                 int statusCode = HttpStatus.INTERNAL_SERVER_ERROR.value();
                 String error = HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase();
 
-                log.error("Errore non gestito: {}", ex.getMessage());
+                log.error("Errore generico: {}", ex.getMessage());
 
+                return buildErrorResponse(statusCode, error, "Si è verificato un errore interno del server");
+        }
+
+        /**
+         * Metodo helper per gestire tutte le eccezioni custom che implementano
+         * BaseCustomException.
+         * 
+         * @param ex            l'eccezione custom
+         * @param exceptionName il nome dell'eccezione per il logging
+         * @return ResponseEntity con la risposta di errore formattata
+         */
+        private ResponseEntity<ErrorResponse> handleCustomException(BaseCustomException ex, String exceptionName) {
+                log.error("{}: {} - {}", exceptionName, ex.getStatusCode(), ex.getMessage());
+
+                return buildErrorResponse(ex.getStatusCode(), ex.getErrorReasonPhrase(), ex.getMessage());
+        }
+
+        /**
+         * Metodo helper per costruire una ResponseEntity con ErrorResponse.
+         * 
+         * @param statusCode il codice di stato HTTP
+         * @param error      la frase di errore HTTP
+         * @param message    il messaggio di errore (può essere String o Object)
+         * @return ResponseEntity con la risposta di errore formattata
+         */
+        private ResponseEntity<ErrorResponse> buildErrorResponse(int statusCode, String error, Object message) {
                 ErrorResponse errorResponse = ErrorResponse.builder()
                                 .statusCode(statusCode)
                                 .error(error)
-                                .message("Si è verificato un errore interno del server")
+                                .message(message)
                                 .build();
 
                 return ResponseEntity.status(statusCode).body(errorResponse);

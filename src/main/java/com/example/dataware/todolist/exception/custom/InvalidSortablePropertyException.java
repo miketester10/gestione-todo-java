@@ -5,7 +5,7 @@ import org.springframework.http.HttpStatus;
 import lombok.Getter;
 
 @Getter
-public class InvalidSortablePropertyException extends RuntimeException {
+public class InvalidSortablePropertyException extends RuntimeException implements BaseCustomException {
     private final int statusCode = HttpStatus.BAD_REQUEST.value();
     private final String errorReasonPhrase = HttpStatus.BAD_REQUEST.getReasonPhrase();
 
