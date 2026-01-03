@@ -83,36 +83,30 @@ public class JwtService {
     }
 
     /**
-     * Questi due metodi fanno la stessa cosa (meno pulito)
+     * Questo metodo utilizza i Generics e le Lambda Expressions per estrarre
+     * dinamicamente un claim dal token JWT.
+     *
+     * Il parametro `resolver` è una lambda che prende in input un oggetto
+     * `Claims` e restituisce un valore di tipo `T`.
+     *
+     * Esempi di resolver:
+     * - claims -> claims.getSubject() // restituisce l'email
+     * - claims -> claims.get("id", Long.class) // restituisce l'id utente
+     *
+     * Il metodo estrae i claims dal token e poi invoca la funzione passata
+     * come argomento tramite `resolver.apply(claims)`.
      */
-    // public String extractEmail(String token) {
-    // return Jwts.parserBuilder()
-    // .setSigningKey(SECRET.getBytes(StandardCharsets.UTF_8))
-    // .build()
-    // .parseClaimsJws(token)
-    // .getBody()
-    // .getSubject();
-    // }
 
-    // public Long extractUserId(String token) {
-    // return Jwts.parserBuilder()
-    // .setSigningKey(SECRET.getBytes(StandardCharsets.UTF_8))
-    // .build()
-    // .parseClaimsJws(token)
-    // .getBody()
-    // .get("id", Long.class);
-    // }
-
-    /**
-     * Questi due metodi fanno la stessa cosa ma usano i Generics (PROFESSIONALE)
-     */
     // public <T> T extractClaim(String token, Function<Claims, T> resolver) {
+
+    // // Estrazione di tutti i claims dal token
     // Claims claims = Jwts.parserBuilder()
     // .setSigningKey(SECRET.getBytes(StandardCharsets.UTF_8))
     // .build()
     // .parseClaimsJws(token)
     // .getBody();
 
+    // // Invocazione della funzione resolver per ottenere il claim desiderato
     // return resolver.apply(claims);
     // }
 
