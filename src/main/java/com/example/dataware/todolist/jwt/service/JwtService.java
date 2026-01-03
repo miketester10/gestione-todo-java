@@ -97,25 +97,23 @@ public class JwtService {
      * come argomento tramite `resolver.apply(claims)`.
      */
 
-    // public <T> T extractClaim(String token, Function<Claims, T> resolver) {
+    // public <T> T extractClaim(String token, TokenType tokenType, Function<Claims,
+    // T> resolver) {
 
     // // Estrazione di tutti i claims dal token
-    // Claims claims = Jwts.parserBuilder()
-    // .setSigningKey(SECRET.getBytes(StandardCharsets.UTF_8))
-    // .build()
-    // .parseClaimsJws(token)
-    // .getBody();
+    // Claims claims = extractAllClaims(token, tokenType);
 
     // // Invocazione della funzione resolver per ottenere il claim desiderato
     // return resolver.apply(claims);
     // }
 
-    // public String extractEmail(String token) {
-    // return extractClaim(token, claims -> claims.getSubject());
+    // public String extractEmail(String token, TokenType tokenType) {
+    // return extractClaim(token, tokenType, claims -> claims.getSubject());
     // }
 
-    // public Long extractUserId(String token) {
-    // return extractClaim(token, claims -> claims.get("id", Long.class));
+    // public Long extractUserId(String token, TokenType tokenType) {
+    // return extractClaim(token, tokenType, claims -> claims.get("id",
+    // Long.class));
     // }
 
 }
