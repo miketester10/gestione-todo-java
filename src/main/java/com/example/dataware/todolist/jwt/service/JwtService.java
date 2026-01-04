@@ -90,8 +90,11 @@ public class JwtService {
      * `Claims` e restituisce un valore di tipo `T`.
      *
      * Esempi di resolver:
-     * - claims -> claims.getSubject() // restituisce l'email
+     * - claims -> claims.getSubject() // restituisce l'email dell'utente
+     * Function<Claims, T> resolver = claims -> claims.getSubject();
+     * 
      * - claims -> claims.get("id", Long.class) // restituisce l'id utente
+     * Function<Claims, T> resolver = claims -> claims.get("id", Long.class);
      *
      * Il metodo estrae i claims dal token e poi invoca la funzione passata
      * come argomento tramite `resolver.apply(claims)`.
