@@ -142,6 +142,20 @@
             <artifactId>mapstruct</artifactId>
             <version>${mapstruct.version}</version>
         </dependency>
+
+        <!-- AWS SDK per S3 -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>2.26.0</version> 
+        </dependency>
+
+        <!-- AWS SDK per auth -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>auth</artifactId>
+            <version>2.26.0</version>
+        </dependency>
     </dependencies>
 
     <!-- Configurazioni di build -->

@@ -11,6 +11,7 @@ import com.example.dataware.todolist.exception.custom.EmailConflictException;
 import com.example.dataware.todolist.exception.custom.InvalidCredentialsException;
 import com.example.dataware.todolist.jwt.service.JwtService;
 import com.example.dataware.todolist.repository.UserRepository;
+import com.example.dataware.todolist.s3.S3Properties;
 import com.example.dataware.todolist.service.EncryptionService;
 import com.example.dataware.todolist.service.interfaces.AuthService;
 import com.example.dataware.todolist.service.interfaces.UserService;
@@ -28,6 +29,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final EncryptionService encryptionService;
+    private final S3Properties s3Properties;
 
     @Override
     public User register(UserDto userDto) {
@@ -41,6 +43,7 @@ public class AuthServiceImpl implements AuthService {
                 .nome(userDto.getNome())
                 .email(userDto.getEmail())
                 .password(encodedPassword)
+                .profileImageUrl(s3Properties.getDefaultAvatarUrl())
                 .build();
 
         return userRepository.save(user);
