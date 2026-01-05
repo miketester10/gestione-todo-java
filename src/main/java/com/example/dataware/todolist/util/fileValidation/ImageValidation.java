@@ -1,35 +1,30 @@
 package com.example.dataware.todolist.util.fileValidation;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.apache.tika.Tika;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.dataware.todolist.exception.custom.EmptyFileException;
 import com.example.dataware.todolist.exception.custom.InvalidFileTypeException;
+import com.example.dataware.todolist.util.fileValidation.enums.ImageMimeType;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ImageValidation {
 
-    private static final List<String> ALLOWED_MIME_TYPES = List.of(
-            "image/jpeg",
-            "image/png",
-            "image/webp");
-
     private static final Tika TIKA = new Tika();
 
     /**
-     * Valida il file e restituisce il MIME type.
-     * 
+     * Valida il file immagine e restituisce il tipo MIME supportato.
+     *
      * @param file il file da validare
-     * @return il MIME type del file se valido
-     * @throws EmptyFileException       se il file è vuoto
+     * @return {@link ImageMimeType} rilevato dal contenuto del file
+     * @throws EmptyFileException       se il file è nullo o vuoto
      * @throws InvalidFileTypeException se il tipo di file non è supportato
      */
-    public static String validateAndGetMimeType(MultipartFile file) {
+    public static ImageMimeType validateAndGetImageMimeType(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new EmptyFileException("Il file è vuoto");
         }
@@ -39,11 +34,8 @@ public class ImageValidation {
             String detectedMimeType = TIKA.detect(file.getInputStream());
             log.warn("Mime Type rilevato: {}", detectedMimeType);
 
-            if (!ALLOWED_MIME_TYPES.contains(detectedMimeType)) {
-                throw new InvalidFileTypeException("Tipo di file non valido: " + detectedMimeType);
-            }
-
-            return detectedMimeType;
+            return ImageMimeType.fromMimeType(detectedMimeType)
+                    .orElseThrow(() -> new InvalidFileTypeException("Tipo di file non valido: " + detectedMimeType));
 
         } catch (IOException e) {
 

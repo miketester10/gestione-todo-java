@@ -5,6 +5,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.example.dataware.todolist.exception.custom.S3UploadException;
 import com.example.dataware.todolist.util.fileValidation.ImageValidation;
+import com.example.dataware.todolist.util.fileValidation.enums.ImageMimeType;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,23 +32,16 @@ public class S3Service {
     public String uploadUserProfileImage(Long userId, MultipartFile file) {
 
         // Valida il file (verifica che sia un'immagine valida)
-        String mimeType = ImageValidation.validateAndGetMimeType(file);
+        ImageMimeType imageMimeType = ImageValidation.validateAndGetImageMimeType(file);
 
-        // Determina l'estensione basata sul MIME type
-        String ext = switch (mimeType) {
-            case "image/jpeg" -> ".jpg";
-            case "image/png" -> ".png";
-            case "image/webp" -> ".webp";
-            default -> ".jpg";
-        };
-
+        String ext = resolveExtension(imageMimeType);
         String key = "users/" + userId + "/profile" + ext;
 
         // Carica l'immagine originale su S3
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(S3Properties.getS3Bucket())
                 .key(key)
-                .contentType(mimeType)
+                .contentType(imageMimeType.getMimeType())
                 .build();
 
         try {
@@ -123,6 +117,16 @@ public class S3Service {
         }
 
         return null;
+    }
+
+    /**
+     * Restituisce l'estensione del file associata al tipo MIME dell'immagine.
+     *
+     * @param imageMimeType tipo MIME dell'immagine validato
+     * @return estensione del file (es. ".jpg", ".png", ".webp")
+     */
+    private String resolveExtension(ImageMimeType imageMimeType) {
+        return imageMimeType.getExtension();
     }
 
     /**
