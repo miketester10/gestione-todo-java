@@ -34,7 +34,7 @@ public class S3Service {
         // Valida il file (verifica che sia un'immagine valida)
         ImageMimeType imageMimeType = ImageValidation.validateAndGetImageMimeType(file);
 
-        String ext = resolveExtension(imageMimeType);
+        String ext = imageMimeType.getExtension();
         String key = "users/" + userId + "/profile" + ext;
 
         // Carica l'immagine originale su S3
@@ -117,16 +117,6 @@ public class S3Service {
         }
 
         return null;
-    }
-
-    /**
-     * Restituisce l'estensione del file associata al tipo MIME dell'immagine.
-     *
-     * @param imageMimeType tipo MIME dell'immagine validato
-     * @return estensione del file (es. ".jpg", ".png", ".webp")
-     */
-    private String resolveExtension(ImageMimeType imageMimeType) {
-        return imageMimeType.getExtension();
     }
 
     /**
