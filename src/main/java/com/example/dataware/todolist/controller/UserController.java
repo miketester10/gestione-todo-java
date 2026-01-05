@@ -7,9 +7,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.dataware.todolist.dto.response.PageResponse;
 import com.example.dataware.todolist.dto.response.UserResponse;
@@ -55,6 +57,25 @@ public class UserController {
         User user = userService.findOne(jwtPayload.getEmail());
         UserResponse userResponse = userMapper.toDTO(user);
         return apiResponseBuilder.success(userResponse, HttpStatus.OK);
+    }
+
+    @PostMapping("/profile/image")
+    public ResponseEntity<SuccessResponse<UserResponse>> uploadProfileImage(
+            @AuthenticationPrincipal JwtPayload jwtPayload,
+            @RequestParam MultipartFile file) {
+
+        User updatedUser = userService.updateProfileImage(jwtPayload.getEmail(), file);
+        UserResponse response = userMapper.toDTO(updatedUser);
+        return apiResponseBuilder.success(response, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/profile/image")
+    public ResponseEntity<SuccessResponse<UserResponse>> deleteProfileImage(
+            @AuthenticationPrincipal JwtPayload jwtPayload) {
+
+        User updatedUser = userService.deleteProfileImage(jwtPayload.getEmail());
+        UserResponse response = userMapper.toDTO(updatedUser);
+        return apiResponseBuilder.success(response, HttpStatus.OK);
     }
 
     @DeleteMapping()

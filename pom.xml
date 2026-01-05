@@ -156,6 +156,14 @@
             <artifactId>auth</artifactId>
             <version>2.26.0</version>
         </dependency>
+        
+        <!-- Apache Tika per estrazione ed analisi contenuti dei file  -->
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+            <version>2.9.0</version>
+        </dependency>
+
     </dependencies>
 
     <!-- Configurazioni di build -->

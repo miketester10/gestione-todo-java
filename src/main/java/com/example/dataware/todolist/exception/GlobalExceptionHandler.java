@@ -3,6 +3,7 @@ package com.example.dataware.todolist.exception;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -12,12 +13,16 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.example.dataware.todolist.exception.custom.BaseCustomException;
 import com.example.dataware.todolist.exception.custom.EmailConflictException;
+import com.example.dataware.todolist.exception.custom.EmptyFileException;
 import com.example.dataware.todolist.exception.custom.InvalidCredentialsException;
+import com.example.dataware.todolist.exception.custom.InvalidFileTypeException;
 import com.example.dataware.todolist.exception.custom.InvalidSortablePropertyException;
+import com.example.dataware.todolist.exception.custom.S3UploadException;
 import com.example.dataware.todolist.exception.custom.TodoNotFoundException;
 import com.example.dataware.todolist.exception.custom.UserNotFoundException;
 
@@ -31,6 +36,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+        @Value("${spring.servlet.multipart.max-file-size}")
+        String MAX_SIZE;
 
         /**
          * Gestisce le eccezioni EmailConflictException lanciate
@@ -96,6 +104,48 @@ public class GlobalExceptionHandler {
         public ResponseEntity<ErrorResponse> handleInvalidSortablePropertyException(
                         InvalidSortablePropertyException ex) {
                 return handleCustomException(ex, InvalidSortablePropertyException.class.getSimpleName());
+        }
+
+        /**
+         * Gestisce le eccezioni EmptyFileException lanciate
+         * dall'applicazione.
+         * Restituisce una risposta JSON pulita senza stack trace.
+         * 
+         * @param ex l'eccezione EmptyFileException
+         * @return ResponseEntity con la risposta di errore formattata
+         */
+        @ExceptionHandler(EmptyFileException.class)
+        public ResponseEntity<ErrorResponse> handleEmptyFileException(
+                        EmptyFileException ex) {
+                return handleCustomException(ex, EmptyFileException.class.getSimpleName());
+        }
+
+        /**
+         * Gestisce le eccezioni InvalidFileTypeException lanciate
+         * dall'applicazione.
+         * Restituisce una risposta JSON pulita senza stack trace.
+         * 
+         * @param ex l'eccezione InvalidFileTypeException
+         * @return ResponseEntity con la risposta di errore formattata
+         */
+        @ExceptionHandler(InvalidFileTypeException.class)
+        public ResponseEntity<ErrorResponse> handleInvalidFileTypeException(
+                        InvalidFileTypeException ex) {
+                return handleCustomException(ex, InvalidFileTypeException.class.getSimpleName());
+        }
+
+        /**
+         * Gestisce le eccezioni S3UploadException lanciate
+         * dall'applicazione.
+         * Restituisce una risposta JSON pulita senza stack trace.
+         * 
+         * @param ex l'eccezione S3UploadException
+         * @return ResponseEntity con la risposta di errore formattata
+         */
+        @ExceptionHandler(S3UploadException.class)
+        public ResponseEntity<ErrorResponse> handleS3UploadException(
+                        S3UploadException ex) {
+                return handleCustomException(ex, S3UploadException.class.getSimpleName());
         }
 
         /**
@@ -202,6 +252,26 @@ public class GlobalExceptionHandler {
 
                 return buildErrorResponse(statusCode, error,
                                 "Accesso negato. Non hai i permessi necessari per eseguire questa operazione.");
+        }
+
+        /**
+         * Gestisce le eccezioni MaxUploadSizeExceededException lanciate
+         * dall'applicazione.
+         * Restituisce una risposta JSON pulita senza stack trace.
+         * 
+         * @param ex l'eccezione MaxUploadSizeExceededException
+         * @return ResponseEntity con la risposta di errore formattata
+         */
+        @ExceptionHandler(MaxUploadSizeExceededException.class)
+        public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException ex) {
+                int statusCode = HttpStatus.BAD_REQUEST.value();
+                String error = HttpStatus.BAD_REQUEST.getReasonPhrase();
+
+                log.error("{}: {} - {}", MaxUploadSizeExceededException.class.getSimpleName(), statusCode, error);
+
+                String message = "Il file supera la dimensione massima consentita: " + MAX_SIZE;
+
+                return buildErrorResponse(statusCode, error, message);
         }
 
         /**
