@@ -29,7 +29,7 @@ public class S3Service {
      * Carica un'immagine profilo su S3 mantenendo il formato originale.
      * 
      * @param userId ID dell'utente
-     * @param file   file immagine da caricare (JPEG, PNG o WebP)
+     * @param file   file da caricare
      * @return URL pubblico dell'immagine caricata
      */
     public String uploadUserProfileImage(Long userId, MultipartFile file) {
