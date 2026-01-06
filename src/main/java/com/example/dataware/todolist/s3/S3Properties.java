@@ -14,7 +14,7 @@ public class S3Properties {
     private String accessKeyId;
     private String secretAccessKey;
     private String region;
-    private String s3Bucket;
+    private String S3Bucket;
     private String defaultAvatarUrl;
 
 }

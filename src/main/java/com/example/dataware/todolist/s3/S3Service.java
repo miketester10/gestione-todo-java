@@ -1,5 +1,7 @@
 package com.example.dataware.todolist.s3;
 
+import java.net.URI;
+
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -12,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetUrlRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @Slf4j
@@ -78,14 +81,14 @@ public class S3Service {
             return;
         }
 
-        DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
+        DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
                 .bucket(S3Properties.getS3Bucket())
                 .key(key)
                 .build();
 
         try {
 
-            S3Client.deleteObject(deleteRequest);
+            S3Client.deleteObject(deleteObjectRequest);
             log.debug("File eliminato da S3: {}", key);
 
         } catch (Exception e) {
@@ -102,21 +105,15 @@ public class S3Service {
      * @return la key S3 o null se l'URL non è valido
      */
     private String extractKeyFromUrl(String s3Url) {
-
-        String baseUrl = "https://" + S3Properties.getS3Bucket() + ".s3." + S3Properties.getRegion()
-                + ".amazonaws.com/";
-
-        if (s3Url.startsWith(baseUrl)) {
-            return s3Url.substring(baseUrl.length());
+        try {
+            URI uri = new URI(s3Url);
+            String path = uri.getPath(); // Da https://bucket.s3.region.amazonaws.com/key restituisce "/key"
+            return path.substring(1); // Rimuove lo slash iniziale da "/key" e restituisce "key"
+        } catch (Exception e) {
+            // Log ma non lanciare eccezione
+            log.debug("URL non valido");
+            return null;
         }
-
-        // Fallback: prova a estrarre tutto dopo l'ultimo /
-        int lastSlash = s3Url.lastIndexOf('/');
-        if (lastSlash >= 0 && lastSlash < s3Url.length() - 1) {
-            return s3Url.substring(lastSlash + 1);
-        }
-
-        return null;
     }
 
     /**
@@ -126,7 +123,11 @@ public class S3Service {
      * @return l'URL pubblico del file
      */
     private String buildPublicUrl(String key) {
-        return "https://" + S3Properties.getS3Bucket() + ".s3." + S3Properties.getRegion() + ".amazonaws.com/" + key;
+        GetUrlRequest request = GetUrlRequest.builder()
+                .bucket(S3Properties.getS3Bucket())
+                .key(key)
+                .build();
+        return S3Client.utilities().getUrl(request).toExternalForm();
     }
 
 }

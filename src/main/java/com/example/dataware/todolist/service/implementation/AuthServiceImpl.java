@@ -29,7 +29,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final EncryptionService encryptionService;
-    private final S3Properties s3Properties;
+    private final S3Properties S3Properties;
 
     @Override
     public User register(UserDto userDto) {
@@ -43,7 +43,7 @@ public class AuthServiceImpl implements AuthService {
                 .nome(userDto.getNome())
                 .email(userDto.getEmail())
                 .password(encodedPassword)
-                .profileImageUrl(s3Properties.getDefaultAvatarUrl())
+                .profileImageUrl(S3Properties.getDefaultAvatarUrl())
                 .build();
 
         return userRepository.save(user);

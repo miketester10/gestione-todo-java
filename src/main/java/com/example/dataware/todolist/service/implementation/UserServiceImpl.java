@@ -23,8 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    private final S3Properties s3Properties;
-    private final S3Service s3Service;
+    private final S3Properties S3Properties;
+    private final S3Service S3Service;
 
     @Override
     public Page<User> findAll(int page, int limit) {
@@ -46,7 +46,7 @@ public class UserServiceImpl implements UserService {
         deleteCurrentProfileImageIfNotDefault(user);
 
         // Carica la nuova immagine su S3
-        String newUrl = s3Service.uploadUserProfileImage(user.getId(), file);
+        String newUrl = S3Service.uploadUserProfileImage(user.getId(), file);
         user.setProfileImageUrl(newUrl);
 
         return userRepository.save(user);
@@ -57,7 +57,7 @@ public class UserServiceImpl implements UserService {
         User user = findOne(email);
 
         // Se l'immagine è già quella di default, non serve fare nulla
-        if (s3Properties.getDefaultAvatarUrl().equals(user.getProfileImageUrl())) {
+        if (S3Properties.getDefaultAvatarUrl().equals(user.getProfileImageUrl())) {
             return user; // Ritorna l'utente senza modifiche
         }
 
@@ -65,7 +65,7 @@ public class UserServiceImpl implements UserService {
         deleteCurrentProfileImageIfNotDefault(user);
 
         // Imposta l'immagine di default
-        user.setProfileImageUrl(s3Properties.getDefaultAvatarUrl());
+        user.setProfileImageUrl(S3Properties.getDefaultAvatarUrl());
 
         return userRepository.save(user);
     }
@@ -79,8 +79,8 @@ public class UserServiceImpl implements UserService {
     private void deleteCurrentProfileImageIfNotDefault(User user) {
         String currentImageUrl = user.getProfileImageUrl();
         if (currentImageUrl != null && !currentImageUrl.isEmpty()) {
-            if (!currentImageUrl.equals(s3Properties.getDefaultAvatarUrl())) {
-                s3Service.deleteFileByUrl(currentImageUrl);
+            if (!currentImageUrl.equals(S3Properties.getDefaultAvatarUrl())) {
+                S3Service.deleteFileByUrl(currentImageUrl);
             }
         }
     }
