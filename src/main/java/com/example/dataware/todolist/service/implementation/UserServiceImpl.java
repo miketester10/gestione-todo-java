@@ -42,31 +42,36 @@ public class UserServiceImpl implements UserService {
     public User updateProfileImage(String email, MultipartFile file) {
         User user = findOne(email);
 
-        // Elimina il vecchio file se diverso dal default
-        deleteCurrentProfileImageIfNotDefault(user);
+        // Salva l'URL corrente PRIMA di fare qualsiasi operazione
+        String oldImageUrl = user.getProfileImageUrl();
 
         // Carica la nuova immagine su S3
         String newUrl = S3Service.uploadUserProfileImage(user.getId(), file);
-        user.setProfileImageUrl(newUrl);
 
-        return userRepository.save(user);
+        // Aggiorna lo User nel DB PRIMA di eliminare il vecchio file
+        // Questo garantisce che se il salvataggio fallisce, il vecchio file rimane
+        user.setProfileImageUrl(newUrl);
+        User savedUser = userRepository.save(user);
+
+        // Elimina il vecchio file SOLO dopo che il DB è stato aggiornato con successo
+        deleteImageFromS3(oldImageUrl, newUrl);
+
+        return savedUser;
     }
 
     @Override
     public User deleteProfileImage(String email) {
         User user = findOne(email);
+        String oldImageUrl = user.getProfileImageUrl();
 
         // Se l'immagine è già quella di default, non serve fare nulla
-        if (S3Properties.getDefaultAvatarUrl().equals(user.getProfileImageUrl())) {
-            return user; // Ritorna l'utente senza modifiche
+        if (S3Properties.getDefaultAvatarUrl().equals(oldImageUrl)) {
+            return user;
         }
 
-        // Elimina il vecchio file se diverso dal default
-        deleteCurrentProfileImageIfNotDefault(user);
-
-        // Imposta l'immagine di default
+        // Elimina il vecchio file e aggiorna il DB
+        deleteImageFromS3(oldImageUrl);
         user.setProfileImageUrl(S3Properties.getDefaultAvatarUrl());
-
         return userRepository.save(user);
     }
 
@@ -76,13 +81,39 @@ public class UserServiceImpl implements UserService {
         userRepository.delete(user);
     }
 
-    private void deleteCurrentProfileImageIfNotDefault(User user) {
-        String currentImageUrl = user.getProfileImageUrl();
-        if (currentImageUrl != null && !currentImageUrl.isEmpty()) {
-            if (!currentImageUrl.equals(S3Properties.getDefaultAvatarUrl())) {
-                S3Service.deleteFileByUrl(currentImageUrl);
-            }
-        }
+    /**
+     * Elimina un'immagine da S3 se non è null, vuota, corrisponde all'avatar di
+     * default
+     * o è uguale all'URL da escludere (se specificato).
+     * 
+     * @param imageUrl l'URL dell'immagine da eliminare
+     */
+    private void deleteImageFromS3(String imageUrl) {
+        deleteImageFromS3(imageUrl, null);
     }
 
+    /**
+     * Elimina un'immagine da S3 se non è null, vuota, corrisponde all'avatar di
+     * default
+     * o è uguale all'URL da escludere (se specificato).
+     * 
+     * @param imageUrl   l'URL dell'immagine da eliminare
+     * @param excludeUrl URL da escludere dal confronto (es. nuovo URL in
+     *                   updateProfileImage)
+     */
+    private void deleteImageFromS3(String imageUrl, String excludeUrl) {
+        if (imageUrl == null || imageUrl.isEmpty()) {
+            return;
+        }
+
+        if (S3Properties.getDefaultAvatarUrl().equals(imageUrl)) {
+            return;
+        }
+
+        if (excludeUrl != null && imageUrl.equals(excludeUrl)) {
+            return;
+        }
+
+        S3Service.deleteFileByUrl(imageUrl);
+    }
 }
