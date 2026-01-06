@@ -15,6 +15,8 @@ Applicazione backend che fornisce un sistema completo di gestione di todo list c
 - **Spring Data JPA** - Persistenza dati
 - **PostgreSQL** - Database relazionale
 - **JWT (JSON Web Token)** - Autenticazione stateless
+- **AWS SDK v2** - Integrazione con Amazon S3 per storage file
+- **Apache Tika** - Rilevamento MIME type basato sul contenuto dei file
 - **Lombok** - Riduzione boilerplate code
 - **MapStruct** 1.5.5 - Mapping automatico Entity ↔ DTO (compile-time)
 - **Jakarta Validation** - Validazione dei dati
@@ -28,6 +30,9 @@ Applicazione backend che fornisce un sistema completo di gestione di todo list c
 - `spring-boot-starter-validation` - Validazione dei dati
 - `postgresql` - Driver database PostgreSQL
 - `jjwt` (0.11.5) - Gestione JWT
+- `aws-sdk-s3` (2.26.0) - SDK AWS per integrazione S3
+- `aws-sdk-auth` (2.26.0) - SDK AWS per autenticazione
+- `tika-core` (2.9.0) - Rilevamento MIME type basato sul contenuto
 - `lombok` - Generazione codice automatica
 - `mapstruct` (1.5.5.Final) - Mapping automatico Entity ↔ DTO
 - `mapstruct-processor` - Annotation processor per MapStruct
@@ -39,7 +44,8 @@ Applicazione backend che fornisce un sistema completo di gestione di todo list c
 ```
 src/main/java/com/example/dataware/todolist/
 ├── config/
-│   └── SecurityConfig.java          # Configurazione Spring Security
+│   ├── SecurityConfig.java          # Configurazione Spring Security
+│   └── S3Config.java                # Configurazione client AWS S3
 ├── controller/
 │   ├── AuthController.java          # Endpoint autenticazione
 │   ├── TodoController.java          # Endpoint gestione todo
@@ -70,8 +76,11 @@ src/main/java/com/example/dataware/todolist/
 │   └── custom/
 │       ├── BaseCustomException.java         # Interfaccia comune per eccezioni custom
 │       ├── EmailConflictException.java      # Eccezione conflitto email
+│       ├── EmptyFileException.java          # Eccezione file vuoto
 │       ├── InvalidCredentialsException.java # Eccezione credenziali non valide
+│       ├── InvalidFileTypeException.java    # Eccezione tipo file non valido
 │       ├── InvalidSortablePropertyException.java # Eccezione proprietà ordinabile non valida
+│       ├── S3UploadException.java           # Eccezione errore upload S3
 │       ├── TodoNotFoundException.java       # Eccezione todo non trovato
 │       └── UserNotFoundException.java       # Eccezione utente non trovato
 ├── jwt/
@@ -101,7 +110,14 @@ src/main/java/com/example/dataware/todolist/
 │   │   ├── TodoServiceImpl.java     # Implementazione servizio todo
 │   │   └── UserServiceImpl.java     # Implementazione servizio utente
 │   └── EncryptionService.java       # Servizio crittografia/decrittografia refresh token
+├── s3/
+│   ├── S3Properties.java            # Proprietà configurazione S3
+│   └── S3Service.java               # Servizio gestione upload/delete file su S3
 └── util/
+    ├── fileValidation/
+    │   ├── ImageValidation.java      # Validazione file immagine con Apache Tika
+    │   └── enums/
+    │       └── ImageMimeType.java    # Enum tipi MIME supportati (JPEG, PNG, WEBP, GIF, HEIC, HEIF)
     └── sort/
         └── TodoSortableProperty.java  # Enum proprietà ordinabili per i todo
 ```
@@ -133,6 +149,7 @@ L'applicazione utilizza **JWT (JSON Web Token)** con sistema di **Access Token**
 - `nome` (String) - Nome utente (min 4 caratteri)
 - `email` (String) - Email univoca
 - `password` (String) - Password hashata con BCrypt
+- `profileImageUrl` (String) - URL dell'immagine profilo su S3 o URL default
 - `role` (Role) - Ruolo dell'utente (`USER` o `ADMIN`). Default: `USER` (impostato automaticamente tramite `@PrePersist`)
 - `refreshToken` (String) - Refresh token crittografato salvato nel database (nullable)
 - `todos` (List<Todo>) - Lista di todo associati
@@ -466,6 +483,7 @@ Ottiene il profilo dell'utente autenticato.
     "id": 1,
     "nome": "Mario Rossi",
     "email": "mario@example.com",
+    "profileImageUrl": "https://bucket.s3.region.amazonaws.com/users/1/profile.jpg",
     "role": "USER",
     "createdAt": "2024-01-01T10:00:00Z",
     "updatedAt": "2024-01-01T10:00:00Z"
@@ -473,6 +491,84 @@ Ottiene il profilo dell'utente autenticato.
   "timestamp": "2024-01-01T10:00:00Z"
 }
 ```
+
+#### POST `/users/profile/image`
+
+Carica un'immagine profilo per l'utente autenticato su Amazon S3.
+
+**Ruolo richiesto:** `USER` o `ADMIN`
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Content-Type:** `multipart/form-data`
+
+**Body:**
+
+- `file` (MultipartFile) - File immagine da caricare
+
+**Validazione:**
+
+- Il file deve essere un'immagine valida (JPEG, PNG, WEBP, GIF, HEIC, HEIF)
+- Dimensione massima: 20MB
+- Il tipo MIME viene rilevato dal contenuto del file (Apache Tika), non dall'estensione
+
+**Response:** `200 OK`
+
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "id": 1,
+    "nome": "Mario Rossi",
+    "email": "mario@example.com",
+    "profileImageUrl": "https://bucket.s3.region.amazonaws.com/users/1/profile.jpg",
+    "role": "USER",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "updatedAt": "2024-01-01T10:00:00Z"
+  },
+  "timestamp": "2024-01-01T10:00:00Z"
+}
+```
+
+**Note:**
+
+- L'immagine viene caricata su S3 con il path: `users/{userId}/profile.{ext}`
+- Se esiste già un'immagine profilo, viene eliminata automaticamente dopo il successo dell'upload
+- Il vecchio file viene eliminato solo dopo che il database è stato aggiornato con successo
+- L'immagine di default non viene mai eliminata
+
+#### DELETE `/users/profile/image`
+
+Elimina l'immagine profilo dell'utente autenticato e ripristina l'avatar di default.
+
+**Ruolo richiesto:** `USER` o `ADMIN`
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response:** `200 OK`
+
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "id": 1,
+    "nome": "Mario Rossi",
+    "email": "mario@example.com",
+    "profileImageUrl": "https://default-avatar-url.com/avatar.png",
+    "role": "USER",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "updatedAt": "2024-01-01T10:00:00Z"
+  },
+  "timestamp": "2024-01-01T10:00:00Z"
+}
+```
+
+**Note:**
+
+- Se l'immagine è già quella di default, non viene eseguita alcuna operazione
+- Il file viene eliminato da S3 e l'URL viene impostato all'avatar di default configurato
 
 #### DELETE `/users`
 
@@ -500,6 +596,11 @@ JWT_REFRESH_SECRET=your_refresh_secret_key_min_32_characters
 JWT_REFRESH_EXPIRATION=7d
 ENCRYPTION_KEY=your_encryption_key_min_16_characters
 ENCRYPTION_SALT=your_encryption_salt_min_8_characters
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=your-bucket-name
+DEFAULT_AVATAR_URL=https://default-avatar-url.com/avatar.png
 ```
 
 **Descrizione variabili:**
@@ -513,6 +614,11 @@ ENCRYPTION_SALT=your_encryption_salt_min_8_characters
 - `JWT_REFRESH_EXPIRATION` - Durata del refresh token (es: `7d` = 7 giorni)
 - `ENCRYPTION_KEY` - Chiave per la crittografia dei refresh token salvati nel database (minimo 16 caratteri)
 - `ENCRYPTION_SALT` - Salt per la crittografia dei refresh token (minimo 8 caratteri)
+- `AWS_ACCESS_KEY_ID` - Access Key ID per AWS S3
+- `AWS_SECRET_ACCESS_KEY` - Secret Access Key per AWS S3
+- `AWS_REGION` - Regione AWS dove si trova il bucket S3 (es: `us-east-1`, `eu-west-1`)
+- `AWS_S3_BUCKET` - Nome del bucket S3 per lo storage delle immagini profilo
+- `DEFAULT_AVATAR_URL` - URL dell'avatar di default da utilizzare quando l'utente non ha un'immagine profilo
 
 ### application.properties
 
@@ -528,6 +634,8 @@ Il file `application.properties` è configurato con:
 - **JWT separati:** Configurazione separata per access token e refresh token con chiavi e scadenze indipendenti
 - **Crittografia refresh token:** Configurazione per crittografare i refresh token salvati nel database usando Spring Security Crypto
 - **Method Security:** Abilitato tramite `@EnableMethodSecurity` in `SecurityConfig` per supportare l'autorizzazione basata su ruoli con `@PreAuthorize`
+- **Multipart file upload:** Dimensione massima file 20MB (`spring.servlet.multipart.max-file-size=20MB`)
+- **AWS S3:** Configurazione per l'integrazione con Amazon S3 per lo storage delle immagini profilo
 
 ## 🚀 Installazione e Avvio
 
@@ -596,8 +704,15 @@ L'applicazione utilizza **Jakarta Validation** per validare i dati in ingresso:
   - `title`: NotBlank, Size(min=4)
 
 - **TodoUpdateDto:**
+
   - `title`: Pattern (opzionale), Size(min=4)
   - `completed`: Boolean (opzionale)
+
+- **Upload Immagini Profilo:**
+  - Il file deve essere un'immagine valida (rilevamento MIME type dal contenuto con Apache Tika)
+  - Formati supportati: JPEG, PNG, WEBP, GIF, HEIC, HEIF
+  - Dimensione massima: 20MB (configurato in `application.properties`)
+  - Validazione basata sul contenuto del file, non sull'estensione
 
 ## 📄 Paginazione
 
@@ -686,10 +801,13 @@ L'applicazione utilizza un **GlobalExceptionHandler** rifattorizzato che gestisc
 Tutte le eccezioni custom dell'applicazione implementano l'interfaccia **`BaseCustomException`**, che definisce i metodi comuni (`getStatusCode()`, `getErrorReasonPhrase()`, `getMessage()`) per una gestione uniforme:
 
 - `EmailConflictException` - Conflitto email durante la registrazione (409 Conflict)
+- `EmptyFileException` - File vuoto o nullo durante l'upload (400 Bad Request)
 - `InvalidCredentialsException` - Credenziali non valide durante il login (400 Bad Request)
-- `UserNotFoundException` - Utente non trovato (404 Not Found)
-- `TodoNotFoundException` - Todo non trovato (404 Not Found)
+- `InvalidFileTypeException` - Tipo file non valido durante l'upload (400 Bad Request)
 - `InvalidSortablePropertyException` - Proprietà di ordinamento non valida (400 Bad Request)
+- `S3UploadException` - Errore durante l'upload su S3 (502 Bad Gateway)
+- `TodoNotFoundException` - Todo non trovato (404 Not Found)
+- `UserNotFoundException` - Utente non trovato (404 Not Found)
 
 ### Eccezioni Standard
 
@@ -889,17 +1007,19 @@ Il sistema supporta due ruoli definiti nell'enum `Role`:
 
 ### Endpoint e Autorizzazioni
 
-| Endpoint              | Metodo             | Ruolo Richiesto                  | Descrizione                |
-| --------------------- | ------------------ | -------------------------------- | -------------------------- |
-| `/auth/register`      | POST               | Nessuno                          | Registrazione pubblica     |
-| `/auth/login`         | POST               | Nessuno                          | Login pubblico             |
-| `/auth/refresh-token` | POST               | Nessuno (richiede refresh token) | Refresh token              |
-| `/auth/logout`        | DELETE             | USER o ADMIN                     | Logout                     |
-| `/todos`              | GET, POST          | USER o ADMIN                     | Gestione todo              |
-| `/todos/{id}`         | GET, PATCH, DELETE | USER o ADMIN                     | Operazioni su singolo todo |
-| `/users`              | GET                | **ADMIN**                        | Lista tutti gli utenti     |
-| `/users/profile`      | GET                | USER o ADMIN                     | Profilo utente autenticato |
-| `/users`              | DELETE             | USER o ADMIN                     | Elimina account utente     |
+| Endpoint               | Metodo             | Ruolo Richiesto                  | Descrizione                |
+| ---------------------- | ------------------ | -------------------------------- | -------------------------- |
+| `/auth/register`       | POST               | Nessuno                          | Registrazione pubblica     |
+| `/auth/login`          | POST               | Nessuno                          | Login pubblico             |
+| `/auth/refresh-token`  | POST               | Nessuno (richiede refresh token) | Refresh token              |
+| `/auth/logout`         | DELETE             | USER o ADMIN                     | Logout                     |
+| `/todos`               | GET, POST          | USER o ADMIN                     | Gestione todo              |
+| `/todos/{id}`          | GET, PATCH, DELETE | USER o ADMIN                     | Operazioni su singolo todo |
+| `/users`               | GET                | **ADMIN**                        | Lista tutti gli utenti     |
+| `/users/profile`       | GET                | USER o ADMIN                     | Profilo utente autenticato |
+| `/users/profile/image` | POST               | USER o ADMIN                     | Carica immagine profilo    |
+| `/users/profile/image` | DELETE             | USER o ADMIN                     | Elimina immagine profilo   |
+| `/users`               | DELETE             | USER o ADMIN                     | Elimina account utente     |
 
 ### Esempio di Utilizzo
 
@@ -929,6 +1049,88 @@ public class UserController {
 - ✅ **Default Sicuro**: Nuovi utenti ricevono automaticamente il ruolo `USER` (privilegi minimi)
 - ✅ **Separazione Ruoli**: Chiaro distinguo tra privilegi USER e ADMIN
 - ✅ **Type-Safe**: Utilizzo di enum per i ruoli (previene errori di digitazione)
+
+## 📸 Gestione Immagini Profilo con AWS S3
+
+Il progetto implementa un sistema completo di gestione immagini profilo utilizzando **Amazon S3** per lo storage e **Apache Tika** per la validazione sicura dei file.
+
+### Caratteristiche
+
+- **Storage su S3**: Le immagini profilo vengono caricate su Amazon S3 invece che sul filesystem locale
+- **Validazione Robusta**: Utilizzo di **Apache Tika** per rilevare il MIME type dal contenuto del file (magic numbers), non dall'estensione
+- **Formati Supportati**: JPEG, PNG, WEBP, GIF, HEIC, HEIF
+- **Gestione Rollback**: Il vecchio file viene eliminato solo dopo il successo dell'upload e del salvataggio nel database
+- **Avatar Default**: Sistema di fallback con avatar di default configurabile
+- **Dimensione Massima**: 20MB per file (configurabile in `application.properties`)
+
+### Architettura
+
+#### Componenti Principali
+
+1. **S3Service**: Gestisce upload e delete dei file su S3
+
+   - `uploadUserProfileImage()`: Carica un'immagine profilo su S3
+   - `deleteFileByUrl()`: Elimina un file da S3 usando il suo URL pubblico
+   - `extractKeyFromUrl()`: Estrae la key S3 dall'URL (supporta virtual-hosted style)
+
+2. **ImageValidation**: Valida i file immagine
+
+   - `validateAndGetImageMimeType()`: Rileva il MIME type dal contenuto usando Apache Tika
+   - Supporta solo formati immagine validi e sicuri
+
+3. **UserService**: Coordina le operazioni
+   - `updateProfileImage()`: Gestisce l'upload con rollback in caso di errore
+   - `deleteProfileImage()`: Elimina l'immagine e ripristina il default
+   - `deleteImageFromS3()`: Metodo privato per eliminazione sicura
+
+### Flusso di Upload
+
+1. **Validazione**: Il file viene validato con Apache Tika per verificare che sia un'immagine valida
+2. **Upload S3**: L'immagine viene caricata su S3 con path: `users/{userId}/profile.{ext}`
+3. **Salvataggio DB**: L'URL dell'immagine viene salvato nel database
+4. **Eliminazione Vecchio File**: Solo dopo il successo del salvataggio, il vecchio file viene eliminato da S3
+
+### Sicurezza
+
+- ✅ **Validazione Contenuto**: Il MIME type viene rilevato dal contenuto, non dall'estensione (previene attacchi di tipo spoofing)
+- ✅ **Formati Limitati**: Solo formati immagine sicuri sono supportati
+- ✅ **Dimensione Massima**: Limite di 20MB per prevenire DoS
+- ✅ **Rollback Sicuro**: Il vecchio file non viene eliminato se l'upload o il salvataggio falliscono
+- ✅ **Protezione Default**: L'avatar di default non viene mai eliminato
+
+### Configurazione S3
+
+Il client S3 viene configurato in `S3Config` utilizzando:
+
+- **Credentials**: Access Key ID e Secret Access Key da variabili d'ambiente
+- **Region**: Regione AWS configurabile
+- **Bucket**: Nome del bucket S3 per lo storage
+
+### Eccezioni Personalizzate
+
+- `EmptyFileException`: File nullo o vuoto (400 Bad Request)
+- `InvalidFileTypeException`: Tipo file non supportato (400 Bad Request)
+- `S3UploadException`: Errore durante l'upload su S3 (502 Bad Gateway)
+
+### Esempio di Utilizzo
+
+```bash
+# Carica immagine profilo
+curl -X POST http://localhost:3001/users/profile/image \
+  -H "Authorization: Bearer <token>" \
+  -F "file=@profile.jpg"
+
+# Elimina immagine profilo (ripristina default)
+curl -X DELETE http://localhost:3001/users/profile/image \
+  -H "Authorization: Bearer <token>"
+```
+
+### Note Importanti
+
+- Le immagini vengono caricate con il formato originale mantenuto
+- Il path su S3 è strutturato: `users/{userId}/profile.{ext}`
+- Se l'utente carica una nuova immagine, quella precedente viene eliminata automaticamente
+- L'eliminazione del vecchio file avviene solo dopo il successo dell'operazione per garantire consistenza
 
 ## 👤 Autore
 
