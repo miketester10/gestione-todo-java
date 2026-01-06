@@ -32,16 +32,14 @@ public class ImageValidation {
         try {
 
             String detectedMimeType = TIKA.detect(file.getInputStream());
-            log.warn("Mime Type rilevato: {}", detectedMimeType);
+            log.debug("Mime Type rilevato: {}", detectedMimeType);
 
             return ImageMimeType.fromMimeType(detectedMimeType)
                     .orElseThrow(() -> new InvalidFileTypeException("Tipo di file non valido: " + detectedMimeType));
 
         } catch (IOException e) {
-
-            log.error("Errore lettura file: " + e.getMessage());
+            log.error("Errore lettura file: {}", e.getMessage(), e);
             throw new InvalidFileTypeException("Errore lettura file");
-
         }
     }
 

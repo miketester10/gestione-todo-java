@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.example.dataware.todolist.exception.custom.BaseCustomException;
@@ -252,6 +254,47 @@ public class GlobalExceptionHandler {
 
                 return buildErrorResponse(statusCode, error,
                                 "Accesso negato. Non hai i permessi necessari per eseguire questa operazione.");
+        }
+
+        /**
+         * Gestisce le eccezioni MultipartException lanciate
+         * dall'applicazione.
+         * Restituisce una risposta JSON pulita senza stack trace.
+         * 
+         * @param ex l'eccezione MultipartException
+         * @return ResponseEntity con la risposta di errore formattata
+         */
+        @ExceptionHandler(MultipartException.class)
+        public ResponseEntity<ErrorResponse> handleMultipartException(MultipartException ex) {
+                int statusCode = HttpStatus.BAD_REQUEST.value();
+                String error = HttpStatus.BAD_REQUEST.getReasonPhrase();
+
+                log.error("{}: {} - {}", MultipartException.class.getSimpleName(), statusCode, error);
+
+                String message = ex.getMessage();
+
+                return buildErrorResponse(statusCode, error, message);
+        }
+
+        /**
+         * Gestisce le eccezioni MissingServletRequestPartException lanciate
+         * dall'applicazione.
+         * Restituisce una risposta JSON pulita senza stack trace.
+         * 
+         * @param ex l'eccezione MissingServletRequestPartException
+         * @return ResponseEntity con la risposta di errore formattata
+         */
+        @ExceptionHandler(MissingServletRequestPartException.class)
+        public ResponseEntity<ErrorResponse> handleMissingServletRequestPartException(
+                        MissingServletRequestPartException ex) {
+                int statusCode = HttpStatus.BAD_REQUEST.value();
+                String error = HttpStatus.BAD_REQUEST.getReasonPhrase();
+
+                log.error("{}: {} - {}", MissingServletRequestPartException.class.getSimpleName(), statusCode, error);
+
+                String message = ex.getMessage();
+
+                return buildErrorResponse(statusCode, error, message);
         }
 
         /**

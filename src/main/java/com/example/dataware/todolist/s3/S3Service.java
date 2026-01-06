@@ -31,6 +31,7 @@ public class S3Service {
      * @param userId ID dell'utente
      * @param file   file da caricare
      * @return URL pubblico dell'immagine caricata
+     * @throws S3UploadException se l'upload fallisce
      */
     public String uploadUserProfileImage(Long userId, MultipartFile file) {
 
@@ -48,11 +49,11 @@ public class S3Service {
                 .build();
 
         try {
-
             S3Client.putObject(
                     putObjectRequest,
                     RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
+            log.debug("File caricato con successo su S3: {}", key);
         } catch (Exception e) {
             log.error("Errore durante l'upload del file su S3: {}", e.getMessage(), e);
             throw new S3UploadException("Errore durante l'upload del file");
@@ -87,21 +88,21 @@ public class S3Service {
                 .build();
 
         try {
-
             S3Client.deleteObject(deleteObjectRequest);
-            log.debug("File eliminato da S3: {}", key);
-
+            log.debug("File eliminato con successo da S3: {}", key);
         } catch (Exception e) {
-            // Log ma non lanciare eccezione: il file potrebbe non esistere
-            log.debug("Errore durante l'eliminazione del file su S3: {}", e.getMessage(), e);
+            // Log ma non lanciare eccezione: il file potrebbe non esistere o essere già
+            // eliminato
+            log.warn("Errore durante l'eliminazione del file su S3 (key: {}): {}", key, e.getMessage());
         }
     }
 
     /**
      * Estrae la key S3 dall'URL pubblico.
+     * Supporta solo il formato URL Virtual-hosted style di S3:
+     * - https://bucket.s3.region.amazonaws.com/key
      * 
-     * @param s3Url URL pubblico del file (es:
-     *              https://bucket.s3.region.amazonaws.com/key)
+     * @param s3Url URL pubblico del file
      * @return la key S3 o null se l'URL non è valido
      */
     private String extractKeyFromUrl(String s3Url) {
@@ -110,8 +111,7 @@ public class S3Service {
             String path = uri.getPath(); // Da https://bucket.s3.region.amazonaws.com/key restituisce "/key"
             return path.substring(1); // Rimuove lo slash iniziale da "/key" e restituisce "key"
         } catch (Exception e) {
-            // Log ma non lanciare eccezione
-            log.debug("URL non valido");
+            log.warn("Errore durante l'estrazione della key dall'URL S3: {} - {}", s3Url, e.getMessage());
             return null;
         }
     }
