@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -18,137 +20,21 @@ import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.example.dataware.todolist.exception.custom.BaseCustomException;
-import com.example.dataware.todolist.exception.custom.EmailConflictException;
-import com.example.dataware.todolist.exception.custom.EmptyFileException;
-import com.example.dataware.todolist.exception.custom.InvalidCredentialsException;
-import com.example.dataware.todolist.exception.custom.InvalidFileTypeException;
-import com.example.dataware.todolist.exception.custom.InvalidSortablePropertyException;
-import com.example.dataware.todolist.exception.custom.S3UploadException;
-import com.example.dataware.todolist.exception.custom.TodoNotFoundException;
-import com.example.dataware.todolist.exception.custom.UserNotFoundException;
-
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Gestore globale delle eccezioni per l'applicazione.
- * Intercetta tutte le eccezioni e restituisce risposte JSON standardizzate
- * senza includere lo stack trace.
+ * Gestore globale delle eccezioni native e di framework.
+ * Intercetta le eccezioni Java/Spring non custom
+ * (validazione, parsing, autorizzazione, multipart, ecc.)
+ * e restituisce risposte JSON standardizzate senza includere lo stack trace.
  */
 @Slf4j
 @RestControllerAdvice
+@Order(Ordered.LOWEST_PRECEDENCE) // Global/fallback handler → gestisce tutto ciò che non è catturato prima
 public class GlobalExceptionHandler {
 
         @Value("${spring.servlet.multipart.max-file-size}")
         String MAX_SIZE;
-
-        /**
-         * Gestisce le eccezioni EmailConflictException lanciate
-         * dall'applicazione.
-         * Restituisce una risposta JSON pulita senza stack trace.
-         * 
-         * @param ex l'eccezione EmailConflictException
-         * @return ResponseEntity con la risposta di errore formattata
-         */
-        @ExceptionHandler(EmailConflictException.class)
-        public ResponseEntity<ErrorResponse> handleEmailConflictException(EmailConflictException ex) {
-                return handleCustomException(ex, EmailConflictException.class.getSimpleName());
-        }
-
-        /**
-         * Gestisce le eccezioni InvalidCredentialsException lanciate
-         * dall'applicazione.
-         * Restituisce una risposta JSON pulita senza stack trace.
-         * 
-         * @param ex l'eccezione InvalidCredentialsException
-         * @return ResponseEntity con la risposta di errore formattata
-         */
-        @ExceptionHandler(InvalidCredentialsException.class)
-        public ResponseEntity<ErrorResponse> handleInvalidCredentialsException(InvalidCredentialsException ex) {
-                return handleCustomException(ex, InvalidCredentialsException.class.getSimpleName());
-        }
-
-        /**
-         * Gestisce le eccezioni UserNotFoundException lanciate
-         * dall'applicazione.
-         * Restituisce una risposta JSON pulita senza stack trace.
-         * 
-         * @param ex l'eccezione UserNotFoundException
-         * @return ResponseEntity con la risposta di errore formattata
-         */
-        @ExceptionHandler(UserNotFoundException.class)
-        public ResponseEntity<ErrorResponse> handleUserNotFoundException(UserNotFoundException ex) {
-                return handleCustomException(ex, UserNotFoundException.class.getSimpleName());
-        }
-
-        /**
-         * Gestisce le eccezioni TodoNotFoundException lanciate
-         * dall'applicazione.
-         * Restituisce una risposta JSON pulita senza stack trace.
-         * 
-         * @param ex l'eccezione TodoNotFoundException
-         * @return ResponseEntity con la risposta di errore formattata
-         */
-        @ExceptionHandler(TodoNotFoundException.class)
-        public ResponseEntity<ErrorResponse> handleTodoNotFoundException(TodoNotFoundException ex) {
-                return handleCustomException(ex, TodoNotFoundException.class.getSimpleName());
-        }
-
-        /**
-         * Gestisce le eccezioni InvalidSortablePropertyException lanciate
-         * dall'applicazione.
-         * Restituisce una risposta JSON pulita senza stack trace.
-         * 
-         * @param ex l'eccezione InvalidSortablePropertyException
-         * @return ResponseEntity con la risposta di errore formattata
-         */
-        @ExceptionHandler(InvalidSortablePropertyException.class)
-        public ResponseEntity<ErrorResponse> handleInvalidSortablePropertyException(
-                        InvalidSortablePropertyException ex) {
-                return handleCustomException(ex, InvalidSortablePropertyException.class.getSimpleName());
-        }
-
-        /**
-         * Gestisce le eccezioni EmptyFileException lanciate
-         * dall'applicazione.
-         * Restituisce una risposta JSON pulita senza stack trace.
-         * 
-         * @param ex l'eccezione EmptyFileException
-         * @return ResponseEntity con la risposta di errore formattata
-         */
-        @ExceptionHandler(EmptyFileException.class)
-        public ResponseEntity<ErrorResponse> handleEmptyFileException(
-                        EmptyFileException ex) {
-                return handleCustomException(ex, EmptyFileException.class.getSimpleName());
-        }
-
-        /**
-         * Gestisce le eccezioni InvalidFileTypeException lanciate
-         * dall'applicazione.
-         * Restituisce una risposta JSON pulita senza stack trace.
-         * 
-         * @param ex l'eccezione InvalidFileTypeException
-         * @return ResponseEntity con la risposta di errore formattata
-         */
-        @ExceptionHandler(InvalidFileTypeException.class)
-        public ResponseEntity<ErrorResponse> handleInvalidFileTypeException(
-                        InvalidFileTypeException ex) {
-                return handleCustomException(ex, InvalidFileTypeException.class.getSimpleName());
-        }
-
-        /**
-         * Gestisce le eccezioni S3UploadException lanciate
-         * dall'applicazione.
-         * Restituisce una risposta JSON pulita senza stack trace.
-         * 
-         * @param ex l'eccezione S3UploadException
-         * @return ResponseEntity con la risposta di errore formattata
-         */
-        @ExceptionHandler(S3UploadException.class)
-        public ResponseEntity<ErrorResponse> handleS3UploadException(
-                        S3UploadException ex) {
-                return handleCustomException(ex, S3UploadException.class.getSimpleName());
-        }
 
         /**
          * Gestisce le ResponseStatusException lanciate dall'applicazione.
@@ -161,12 +47,12 @@ public class GlobalExceptionHandler {
         public ResponseEntity<ErrorResponse> handleResponseStatusException(ResponseStatusException ex) {
                 int statusCode = ex.getStatusCode().value();
                 HttpStatus httpStatus = HttpStatus.resolve(statusCode);
-                String errorPhrase = httpStatus.getReasonPhrase();
+                String reasonPhrase = httpStatus.getReasonPhrase();
                 String message = ex.getReason();
 
                 log.error("{}: {} - {}", ResponseStatusException.class.getSimpleName(), statusCode, message);
 
-                return buildErrorResponse(statusCode, errorPhrase, message);
+                return ErrorResponse.buildResponse(statusCode, reasonPhrase, message);
         }
 
         /**
@@ -179,7 +65,7 @@ public class GlobalExceptionHandler {
         @ExceptionHandler(MethodArgumentNotValidException.class)
         public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {
                 int statusCode = HttpStatus.BAD_REQUEST.value();
-                String error = HttpStatus.BAD_REQUEST.getReasonPhrase();
+                String reasonPhrase = HttpStatus.BAD_REQUEST.getReasonPhrase();
 
                 Map<String, String> validationErrors = new HashMap<>();
                 ex.getBindingResult().getAllErrors().forEach(e -> {
@@ -191,7 +77,7 @@ public class GlobalExceptionHandler {
                 log.error("{}: {} - {}", MethodArgumentNotValidException.class.getSimpleName(), statusCode,
                                 validationErrors);
 
-                return buildErrorResponse(statusCode, error, validationErrors);
+                return ErrorResponse.buildResponse(statusCode, reasonPhrase, validationErrors);
         }
 
         /**
@@ -207,11 +93,13 @@ public class GlobalExceptionHandler {
         public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(
                         HttpMessageNotReadableException ex) {
                 int statusCode = HttpStatus.BAD_REQUEST.value();
-                String error = HttpStatus.BAD_REQUEST.getReasonPhrase();
+                String reasonPhrase = HttpStatus.BAD_REQUEST.getReasonPhrase();
 
-                log.error("{}: {} - {}", HttpMessageNotReadableException.class.getSimpleName(), statusCode, error);
+                log.error("{}: {} - {}", HttpMessageNotReadableException.class.getSimpleName(), statusCode,
+                                reasonPhrase);
 
-                return buildErrorResponse(statusCode, error, "Devi inviare un body valido insieme alla richiesta HTTP");
+                return ErrorResponse.buildResponse(statusCode, reasonPhrase,
+                                "Devi inviare un body valido insieme alla richiesta HTTP");
         }
 
         /**
@@ -226,14 +114,15 @@ public class GlobalExceptionHandler {
         public ResponseEntity<ErrorResponse> handleTypeMismatch(
                         MethodArgumentTypeMismatchException ex) {
                 int statusCode = HttpStatus.BAD_REQUEST.value();
-                String error = HttpStatus.BAD_REQUEST.getReasonPhrase();
+                String reasonPhrase = HttpStatus.BAD_REQUEST.getReasonPhrase();
 
-                log.error("{}: {} - {}", MethodArgumentTypeMismatchException.class.getSimpleName(), statusCode, error);
+                log.error("{}: {} - {}", MethodArgumentTypeMismatchException.class.getSimpleName(), statusCode,
+                                reasonPhrase);
 
                 String message = "Parametro [" + ex.getName()
                                 + "] non valido nel percorso URL. Assicurati di utilizzare il formato corretto.";
 
-                return buildErrorResponse(statusCode, error, message);
+                return ErrorResponse.buildResponse(statusCode, reasonPhrase, message);
         }
 
         /**
@@ -248,11 +137,11 @@ public class GlobalExceptionHandler {
         public ResponseEntity<ErrorResponse> handleAuthorizationDenied(
                         AuthorizationDeniedException ex) {
                 int statusCode = HttpStatus.FORBIDDEN.value();
-                String error = HttpStatus.FORBIDDEN.getReasonPhrase();
+                String reasonPhrase = HttpStatus.FORBIDDEN.getReasonPhrase();
 
-                log.error("{}: {} - {}", AuthorizationDeniedException.class.getSimpleName(), statusCode, error);
+                log.error("{}: {} - {}", AuthorizationDeniedException.class.getSimpleName(), statusCode, reasonPhrase);
 
-                return buildErrorResponse(statusCode, error,
+                return ErrorResponse.buildResponse(statusCode, reasonPhrase,
                                 "Accesso negato. Non hai i permessi necessari per eseguire questa operazione.");
         }
 
@@ -267,13 +156,13 @@ public class GlobalExceptionHandler {
         @ExceptionHandler(MultipartException.class)
         public ResponseEntity<ErrorResponse> handleMultipartException(MultipartException ex) {
                 int statusCode = HttpStatus.BAD_REQUEST.value();
-                String error = HttpStatus.BAD_REQUEST.getReasonPhrase();
+                String reasonPhrase = HttpStatus.BAD_REQUEST.getReasonPhrase();
 
-                log.error("{}: {} - {}", MultipartException.class.getSimpleName(), statusCode, error);
+                log.error("{}: {} - {}", MultipartException.class.getSimpleName(), statusCode, reasonPhrase);
 
                 String message = ex.getMessage();
 
-                return buildErrorResponse(statusCode, error, message);
+                return ErrorResponse.buildResponse(statusCode, reasonPhrase, message);
         }
 
         /**
@@ -288,13 +177,14 @@ public class GlobalExceptionHandler {
         public ResponseEntity<ErrorResponse> handleMissingServletRequestPartException(
                         MissingServletRequestPartException ex) {
                 int statusCode = HttpStatus.BAD_REQUEST.value();
-                String error = HttpStatus.BAD_REQUEST.getReasonPhrase();
+                String reasonPhrase = HttpStatus.BAD_REQUEST.getReasonPhrase();
 
-                log.error("{}: {} - {}", MissingServletRequestPartException.class.getSimpleName(), statusCode, error);
+                log.error("{}: {} - {}", MissingServletRequestPartException.class.getSimpleName(), statusCode,
+                                reasonPhrase);
 
                 String message = ex.getMessage();
 
-                return buildErrorResponse(statusCode, error, message);
+                return ErrorResponse.buildResponse(statusCode, reasonPhrase, message);
         }
 
         /**
@@ -308,13 +198,14 @@ public class GlobalExceptionHandler {
         @ExceptionHandler(MaxUploadSizeExceededException.class)
         public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException ex) {
                 int statusCode = HttpStatus.BAD_REQUEST.value();
-                String error = HttpStatus.BAD_REQUEST.getReasonPhrase();
+                String reasonPhrase = HttpStatus.BAD_REQUEST.getReasonPhrase();
 
-                log.error("{}: {} - {}", MaxUploadSizeExceededException.class.getSimpleName(), statusCode, error);
+                log.error("{}: {} - {}", MaxUploadSizeExceededException.class.getSimpleName(), statusCode,
+                                reasonPhrase);
 
                 String message = "Il file supera la dimensione massima consentita: " + MAX_SIZE;
 
-                return buildErrorResponse(statusCode, error, message);
+                return ErrorResponse.buildResponse(statusCode, reasonPhrase, message);
         }
 
         /**
@@ -327,42 +218,11 @@ public class GlobalExceptionHandler {
         @ExceptionHandler(Exception.class)
         public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
                 int statusCode = HttpStatus.INTERNAL_SERVER_ERROR.value();
-                String error = HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase();
+                String reasonPhrase = HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase();
 
                 log.error("Errore generico: {}", ex.getMessage());
 
-                return buildErrorResponse(statusCode, error, "Si è verificato un errore interno del server");
-        }
-
-        /**
-         * Metodo helper per gestire tutte le eccezioni custom che implementano
-         * BaseCustomException.
-         * 
-         * @param ex            l'eccezione custom
-         * @param exceptionName il nome dell'eccezione per il logging
-         * @return ResponseEntity con la risposta di errore formattata
-         */
-        private ResponseEntity<ErrorResponse> handleCustomException(BaseCustomException ex, String exceptionName) {
-                log.error("{}: {} - {}", exceptionName, ex.getStatusCode(), ex.getMessage());
-
-                return buildErrorResponse(ex.getStatusCode(), ex.getErrorReasonPhrase(), ex.getMessage());
-        }
-
-        /**
-         * Metodo helper per costruire una ResponseEntity con ErrorResponse.
-         * 
-         * @param statusCode il codice di stato HTTP
-         * @param error      la frase di errore HTTP
-         * @param message    il messaggio di errore (può essere String o Object)
-         * @return ResponseEntity con la risposta di errore formattata
-         */
-        private ResponseEntity<ErrorResponse> buildErrorResponse(int statusCode, String error, Object message) {
-                ErrorResponse errorResponse = ErrorResponse.builder()
-                                .statusCode(statusCode)
-                                .error(error)
-                                .message(message)
-                                .build();
-
-                return ResponseEntity.status(statusCode).body(errorResponse);
+                return ErrorResponse.buildResponse(statusCode, reasonPhrase,
+                                "Si è verificato un errore interno del server");
         }
 }
