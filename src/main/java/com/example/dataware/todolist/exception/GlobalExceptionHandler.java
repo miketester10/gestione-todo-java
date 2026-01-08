@@ -50,9 +50,7 @@ public class GlobalExceptionHandler {
                 String reasonPhrase = httpStatus.getReasonPhrase();
                 String message = ex.getReason();
 
-                log.error("{}: {} - {}", ResponseStatusException.class.getSimpleName(), statusCode, message);
-
-                return ErrorResponse.buildResponse(statusCode, reasonPhrase, message);
+                return handleException(ex, statusCode, reasonPhrase, message);
         }
 
         /**
@@ -74,10 +72,8 @@ public class GlobalExceptionHandler {
                         validationErrors.put(fieldName, errorMessage);
                 });
 
-                log.error("{}: {} - {}", MethodArgumentNotValidException.class.getSimpleName(), statusCode,
+                return handleException(ex, statusCode, reasonPhrase,
                                 validationErrors);
-
-                return ErrorResponse.buildResponse(statusCode, reasonPhrase, validationErrors);
         }
 
         /**
@@ -95,10 +91,7 @@ public class GlobalExceptionHandler {
                 int statusCode = HttpStatus.BAD_REQUEST.value();
                 String reasonPhrase = HttpStatus.BAD_REQUEST.getReasonPhrase();
 
-                log.error("{}: {} - {}", HttpMessageNotReadableException.class.getSimpleName(), statusCode,
-                                reasonPhrase);
-
-                return ErrorResponse.buildResponse(statusCode, reasonPhrase,
+                return handleException(ex, statusCode, reasonPhrase,
                                 "Devi inviare un body valido insieme alla richiesta HTTP");
         }
 
@@ -116,13 +109,10 @@ public class GlobalExceptionHandler {
                 int statusCode = HttpStatus.BAD_REQUEST.value();
                 String reasonPhrase = HttpStatus.BAD_REQUEST.getReasonPhrase();
 
-                log.error("{}: {} - {}", MethodArgumentTypeMismatchException.class.getSimpleName(), statusCode,
-                                reasonPhrase);
-
                 String message = "Parametro [" + ex.getName()
                                 + "] non valido nel percorso URL. Assicurati di utilizzare il formato corretto.";
 
-                return ErrorResponse.buildResponse(statusCode, reasonPhrase, message);
+                return handleException(ex, statusCode, reasonPhrase, message);
         }
 
         /**
@@ -139,9 +129,7 @@ public class GlobalExceptionHandler {
                 int statusCode = HttpStatus.FORBIDDEN.value();
                 String reasonPhrase = HttpStatus.FORBIDDEN.getReasonPhrase();
 
-                log.error("{}: {} - {}", AuthorizationDeniedException.class.getSimpleName(), statusCode, reasonPhrase);
-
-                return ErrorResponse.buildResponse(statusCode, reasonPhrase,
+                return handleException(ex, statusCode, reasonPhrase,
                                 "Accesso negato. Non hai i permessi necessari per eseguire questa operazione.");
         }
 
@@ -158,11 +146,7 @@ public class GlobalExceptionHandler {
                 int statusCode = HttpStatus.BAD_REQUEST.value();
                 String reasonPhrase = HttpStatus.BAD_REQUEST.getReasonPhrase();
 
-                log.error("{}: {} - {}", MultipartException.class.getSimpleName(), statusCode, reasonPhrase);
-
-                String message = ex.getMessage();
-
-                return ErrorResponse.buildResponse(statusCode, reasonPhrase, message);
+                return handleException(ex, statusCode, reasonPhrase, ex.getMessage());
         }
 
         /**
@@ -179,12 +163,8 @@ public class GlobalExceptionHandler {
                 int statusCode = HttpStatus.BAD_REQUEST.value();
                 String reasonPhrase = HttpStatus.BAD_REQUEST.getReasonPhrase();
 
-                log.error("{}: {} - {}", MissingServletRequestPartException.class.getSimpleName(), statusCode,
-                                reasonPhrase);
-
-                String message = ex.getMessage();
-
-                return ErrorResponse.buildResponse(statusCode, reasonPhrase, message);
+                return handleException(ex, statusCode, reasonPhrase,
+                                ex.getMessage());
         }
 
         /**
@@ -200,12 +180,9 @@ public class GlobalExceptionHandler {
                 int statusCode = HttpStatus.BAD_REQUEST.value();
                 String reasonPhrase = HttpStatus.BAD_REQUEST.getReasonPhrase();
 
-                log.error("{}: {} - {}", MaxUploadSizeExceededException.class.getSimpleName(), statusCode,
-                                reasonPhrase);
-
                 String message = "Il file supera la dimensione massima consentita: " + MAX_SIZE;
 
-                return ErrorResponse.buildResponse(statusCode, reasonPhrase, message);
+                return handleException(ex, statusCode, reasonPhrase, message);
         }
 
         /**
@@ -220,9 +197,27 @@ public class GlobalExceptionHandler {
                 int statusCode = HttpStatus.INTERNAL_SERVER_ERROR.value();
                 String reasonPhrase = HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase();
 
-                log.error("Errore generico: {}", ex.getMessage());
-
-                return ErrorResponse.buildResponse(statusCode, reasonPhrase,
+                return handleException(ex, statusCode, reasonPhrase,
                                 "Si è verificato un errore interno del server");
+        }
+
+        /**
+         * Metodo helper per gestire tutte le eccezioni native/Spring.
+         * Centralizza la logica di logging e costruzione della risposta.
+         * Estrae automaticamente il nome della classe dell'eccezione per il logging.
+         * 
+         * @param ex           l'istanza dell'eccezione
+         * @param statusCode   il codice di stato HTTP
+         * @param reasonPhrase la frase di errore HTTP
+         * @param message      il messaggio di errore (può essere String o Object)
+         * @return ResponseEntity con la risposta di errore formattata
+         */
+        private ResponseEntity<ErrorResponse> handleException(
+                        Exception ex, int statusCode, String reasonPhrase, Object message) {
+                String exceptionName = ex.getClass().getSimpleName();
+
+                log.error("{}: {} - {}", exceptionName, statusCode, message);
+
+                return ErrorResponse.buildResponse(statusCode, reasonPhrase, message);
         }
 }

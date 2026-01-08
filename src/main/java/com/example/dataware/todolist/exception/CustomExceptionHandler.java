@@ -39,7 +39,7 @@ public class CustomExceptionHandler {
      */
     @ExceptionHandler(EmailConflictException.class)
     public ResponseEntity<ErrorResponse> handleEmailConflictException(EmailConflictException ex) {
-        return handleCustomException(ex, EmailConflictException.class.getSimpleName());
+        return handleException(ex);
     }
 
     /**
@@ -52,7 +52,7 @@ public class CustomExceptionHandler {
      */
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleInvalidCredentialsException(InvalidCredentialsException ex) {
-        return handleCustomException(ex, InvalidCredentialsException.class.getSimpleName());
+        return handleException(ex);
     }
 
     /**
@@ -65,7 +65,7 @@ public class CustomExceptionHandler {
      */
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleUserNotFoundException(UserNotFoundException ex) {
-        return handleCustomException(ex, UserNotFoundException.class.getSimpleName());
+        return handleException(ex);
     }
 
     /**
@@ -78,7 +78,7 @@ public class CustomExceptionHandler {
      */
     @ExceptionHandler(TodoNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleTodoNotFoundException(TodoNotFoundException ex) {
-        return handleCustomException(ex, TodoNotFoundException.class.getSimpleName());
+        return handleException(ex);
     }
 
     /**
@@ -92,7 +92,7 @@ public class CustomExceptionHandler {
     @ExceptionHandler(InvalidSortablePropertyException.class)
     public ResponseEntity<ErrorResponse> handleInvalidSortablePropertyException(
             InvalidSortablePropertyException ex) {
-        return handleCustomException(ex, InvalidSortablePropertyException.class.getSimpleName());
+        return handleException(ex);
     }
 
     /**
@@ -106,7 +106,7 @@ public class CustomExceptionHandler {
     @ExceptionHandler(EmptyFileException.class)
     public ResponseEntity<ErrorResponse> handleEmptyFileException(
             EmptyFileException ex) {
-        return handleCustomException(ex, EmptyFileException.class.getSimpleName());
+        return handleException(ex);
     }
 
     /**
@@ -120,7 +120,7 @@ public class CustomExceptionHandler {
     @ExceptionHandler(InvalidFileTypeException.class)
     public ResponseEntity<ErrorResponse> handleInvalidFileTypeException(
             InvalidFileTypeException ex) {
-        return handleCustomException(ex, InvalidFileTypeException.class.getSimpleName());
+        return handleException(ex);
     }
 
     /**
@@ -134,18 +134,21 @@ public class CustomExceptionHandler {
     @ExceptionHandler(S3UploadException.class)
     public ResponseEntity<ErrorResponse> handleS3UploadException(
             S3UploadException ex) {
-        return handleCustomException(ex, S3UploadException.class.getSimpleName());
+        return handleException(ex);
     }
 
     /**
      * Metodo helper per gestire tutte le eccezioni custom che implementano
      * BaseCustomException.
+     * Centralizza la logica di logging e costruzione della risposta.
+     * Estrae automaticamente il nome della classe dell'eccezione per il logging.
      * 
-     * @param ex            l'eccezione custom
-     * @param exceptionName il nome dell'eccezione per il logging
+     * @param ex l'istanza dell'eccezione custom
      * @return ResponseEntity con la risposta di errore formattata
      */
-    private ResponseEntity<ErrorResponse> handleCustomException(BaseCustomException ex, String exceptionName) {
+    private ResponseEntity<ErrorResponse> handleException(BaseCustomException ex) {
+        String exceptionName = ex.getClass().getSimpleName();
+
         log.error("{}: {} - {}", exceptionName, ex.getStatusCode(), ex.getMessage());
 
         return ErrorResponse.buildResponse(ex.getStatusCode(), ex.getErrorReasonPhrase(), ex.getMessage());
