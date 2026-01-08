@@ -34,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 public class GlobalExceptionHandler {
 
         @Value("${spring.servlet.multipart.max-file-size}")
-        String MAX_SIZE;
+        private String MAX_SIZE;
 
         /**
          * Gestisce le ResponseStatusException lanciate dall'applicazione.

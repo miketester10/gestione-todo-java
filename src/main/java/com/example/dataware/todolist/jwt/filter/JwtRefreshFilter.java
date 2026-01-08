@@ -163,7 +163,7 @@ public class JwtRefreshFilter extends OncePerRequestFilter {
 
         ErrorResponse errorResponseObj = ErrorResponse.builder()
                 .statusCode(status.value())
-                .error(status.getReasonPhrase())
+                .reason(status.getReasonPhrase())
                 .message(message)
                 .build();
 
