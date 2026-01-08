@@ -1,6 +1,7 @@
 package com.example.dataware.todolist.filter.rateLimiter;
 
 import java.io.IOException;
+import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.example.dataware.todolist.exception.ErrorResponse;
+import com.example.dataware.todolist.filter.rateLimiter.enums.RateLimitEndpoint;
 import com.example.dataware.todolist.filter.rateLimiter.service.RateLimiterService;
 
 import jakarta.servlet.FilterChain;
@@ -34,16 +36,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final RateLimiterService rateLimiterService;
     private final ObjectMapper objectMapper;
 
-    private static final int MAX_REQUESTS = 4;
-    private static final long WINDOW_SECONDS = 60; // 1 minuto
-
     /**
-     * Applica il filtro solo agli endpoint di autenticazione.
+     * Applica il filtro solo agli endpoint presenti nell'enum RateLimitEndpoint.
      */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return !path.startsWith("/auth");
+        return RateLimitEndpoint.fromPath(path).isEmpty();
     }
 
     @Override
@@ -52,13 +51,25 @@ public class RateLimitFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
 
-        String clientIp = request.getRemoteAddr();
-        String identifier = "auth:" + clientIp;
+        String path = request.getRequestURI();
+        Optional<RateLimitEndpoint> endpointOptional = RateLimitEndpoint.fromPath(path);
 
-        if (!rateLimiterService.isAllowed(identifier, MAX_REQUESTS, WINDOW_SECONDS)) {
+        if (endpointOptional.isEmpty()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        RateLimitEndpoint endpoint = endpointOptional.get();
+        String clientIp = request.getRemoteAddr();
+        String key = endpoint.name() + ":" + clientIp;
+
+        final int MAX_REQUESTS = endpoint.getMaxRequests();
+        final long WINDOW_SECONDS = endpoint.getWindowSeconds();
+
+        if (!rateLimiterService.isAllowed(key, MAX_REQUESTS, WINDOW_SECONDS)) {
             log.warn("Rate limit exceeded for IP: {} on path: {}", clientIp, request.getRequestURI());
 
-            long remaining = rateLimiterService.getRemainingRequests(identifier, MAX_REQUESTS, WINDOW_SECONDS);
+            long remaining = rateLimiterService.getRemainingRequests(key, MAX_REQUESTS, WINDOW_SECONDS);
 
             response.setHeader("X-RateLimit-Limit", String.valueOf(MAX_REQUESTS));
             response.setHeader("X-RateLimit-Remaining", String.valueOf(remaining));
@@ -69,7 +80,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         // Aggiunge gli header di rate limit anche in caso di successo
-        long remaining = rateLimiterService.getRemainingRequests(identifier, MAX_REQUESTS, WINDOW_SECONDS);
+        long remaining = rateLimiterService.getRemainingRequests(key, MAX_REQUESTS, WINDOW_SECONDS);
         response.setHeader("X-RateLimit-Limit", String.valueOf(MAX_REQUESTS));
         response.setHeader("X-RateLimit-Remaining", String.valueOf(remaining));
         response.setHeader("X-RateLimit-Reset", String.valueOf(System.currentTimeMillis() / 1000 + WINDOW_SECONDS));

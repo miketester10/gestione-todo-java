@@ -25,23 +25,23 @@ public class RateLimiterService {
 
     private final ProxyManager<String> proxyManager;
 
-    public boolean isAllowed(String identifier, int maxRequests, long windowSeconds) {
-        Bucket bucket = getBucket(identifier, maxRequests, windowSeconds);
+    public boolean isAllowed(String key, int maxRequests, long windowSeconds) {
+        Bucket bucket = getBucket(key, maxRequests, windowSeconds);
         boolean allowed = bucket.tryConsume(1);
         return allowed;
     }
 
-    public long getRemainingRequests(String identifier, int maxRequests, long windowSeconds) {
-        Bucket bucket = getBucket(identifier, maxRequests, windowSeconds);
+    public long getRemainingRequests(String key, int maxRequests, long windowSeconds) {
+        Bucket bucket = getBucket(key, maxRequests, windowSeconds);
         return bucket.getAvailableTokens();
     }
 
     /**
-     * Ottiene o crea un bucket per l'identificatore specificato.
+     * Ottiene o crea un bucket per la key Redis specificata.
      * Bucket4j gestisce automaticamente la creazione e la sincronizzazione
      * distribuita.
      */
-    private Bucket getBucket(String identifier, int maxRequests, long windowSeconds) {
+    private Bucket getBucket(String key, int maxRequests, long windowSeconds) {
         Supplier<BucketConfiguration> configSupplier = () -> {
             // Usa Bandwidth.builder per creare un bandwidth con refill continuo
             Bandwidth limit = Bandwidth.builder()
@@ -54,7 +54,7 @@ public class RateLimiterService {
         };
 
         return proxyManager.builder()
-                .build(identifier, configSupplier);
+                .build(key, configSupplier);
     }
 
 }
