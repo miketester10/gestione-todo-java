@@ -9,7 +9,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.context.SecurityContextHolderFilter;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.example.dataware.todolist.filter.jwt.JwtAccessFilter;
 import com.example.dataware.todolist.filter.jwt.JwtRefreshFilter;
@@ -29,9 +29,9 @@ public class SecurityConfig {
 
         http.csrf((csfr) -> csfr.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(rateLimitFilter, SecurityContextHolderFilter.class)
-                .addFilterAfter(jwtRefreshFilter, RateLimitFilter.class)
-                .addFilterAfter(jwtAccessFilter, JwtRefreshFilter.class);
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(jwtAccessFilter, RateLimitFilter.class)
+                .addFilterAfter(jwtRefreshFilter, JwtAccessFilter.class);
 
         return http.build();
     }
