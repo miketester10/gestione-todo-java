@@ -71,8 +71,9 @@ src/main/java/com/example/dataware/todolist/
 │   ├── User.java                    # Entità utente
 │   └── Todo.java                    # Entità todo
 ├── exception/
-│   ├── ErrorResponse.java           # Modello risposta errore
-│   ├── GlobalExceptionHandler.java  # Gestore globale eccezioni
+│   ├── ErrorResponse.java           # Modello risposta errore con metodo buildResponse()
+│   ├── CustomExceptionHandler.java  # Gestore eccezioni custom (priorità alta)
+│   ├── GlobalExceptionHandler.java  # Gestore eccezioni native/Spring (priorità bassa)
 │   └── custom/
 │       ├── BaseCustomException.java         # Interfaccia comune per eccezioni custom
 │       ├── EmailConflictException.java      # Eccezione conflitto email
@@ -794,7 +795,21 @@ GET /users?page=3&limit=20
 
 ## 🔒 Gestione Errori
 
-L'applicazione utilizza un **GlobalExceptionHandler** rifattorizzato che gestisce tutte le eccezioni in modo centralizzato e standardizzato.
+L'applicazione utilizza un sistema di gestione errori rifattorizzato e centralizzato con due handler separati per una migliore organizzazione e manutenibilità.
+
+### Architettura
+
+Il sistema di gestione errori è diviso in due handler con priorità diversa:
+
+1. **`CustomExceptionHandler`** (`@Order(HIGHEST_PRECEDENCE)`)
+
+   - Gestisce tutte le eccezioni custom dell'applicazione
+   - Ha priorità massima per essere valutato per primo
+   - Tutte le eccezioni custom implementano `BaseCustomException`
+
+2. **`GlobalExceptionHandler`** (`@Order(LOWEST_PRECEDENCE)`)
+   - Gestisce tutte le eccezioni native di Java/Spring
+   - Ha priorità minima come fallback per eccezioni non gestite altrove
 
 ### Eccezioni Custom
 
@@ -809,24 +824,65 @@ Tutte le eccezioni custom dell'applicazione implementano l'interfaccia **`BaseCu
 - `TodoNotFoundException` - Todo non trovato (404 Not Found)
 - `UserNotFoundException` - Utente non trovato (404 Not Found)
 
-### Eccezioni Standard
+### Eccezioni Standard (Native/Spring)
 
-Il gestore gestisce anche le eccezioni standard di Spring:
+Il `GlobalExceptionHandler` gestisce tutte le eccezioni standard di Java/Spring:
 
 - `ResponseStatusException` - Eccezioni personalizzate con codice HTTP
-- `MethodArgumentNotValidException` - Errori di validazione dei DTO
+- `MethodArgumentNotValidException` - Errori di validazione dei DTO (restituisce `Map<String, String>` con errori di validazione)
 - `HttpMessageNotReadableException` - Body mancante o non valido
 - `MethodArgumentTypeMismatchException` - Tipo parametro non valido (PathVariable/RequestParam)
 - `AuthorizationDeniedException` - Accesso negato per autorizzazione (403 Forbidden)
+- `MultipartException` - Errori durante l'upload di file multipart
+- `MissingServletRequestPartException` - Parte della richiesta multipart mancante
+- `MaxUploadSizeExceededException` - File supera la dimensione massima consentita
 - `Exception` - Errori generici non gestiti (500 Internal Server Error)
 
-### Architettura
+### Pattern di Rifattorizzazione
 
-Il `GlobalExceptionHandler` è stato rifattorizzato per eliminare la duplicazione del codice:
+Il sistema è stato rifattorizzato per eliminare la duplicazione del codice e migliorare la manutenibilità:
 
-- **Metodo helper `handleCustomException()`**: Gestisce tutte le eccezioni custom che implementano `BaseCustomException`
-- **Metodo helper `buildErrorResponse()`**: Costruisce la `ResponseEntity` con `ErrorResponse` in modo standardizzato
-- **Logging consistente**: Tutti i log utilizzano il nome della classe dell'eccezione per tracciabilità
+#### 1. Metodo `buildResponse()` in `ErrorResponse`
+
+Il metodo statico `ErrorResponse.buildResponse()` centralizza la costruzione di `ResponseEntity<ErrorResponse>`:
+
+```java
+public static ResponseEntity<ErrorResponse> buildResponse(
+    int statusCode, String reasonPhrase, Object message
+)
+```
+
+**Vantaggi:**
+
+- Elimina la duplicazione tra i due handler
+- Logica di costruzione centralizzata in un unico punto
+- Manutenibilità migliorata (modifiche in un solo posto)
+
+#### 2. Metodo Helper in `CustomExceptionHandler`
+
+```java
+private ResponseEntity<ErrorResponse> handleException(BaseCustomException ex)
+```
+
+**Caratteristiche:**
+
+- Accetta direttamente l'istanza dell'eccezione
+- Estrae automaticamente tutti i dati dall'interfaccia `BaseCustomException`
+- Estrae automaticamente il nome della classe per il logging
+
+#### 3. Metodo Helper in `GlobalExceptionHandler`
+
+```java
+private ResponseEntity<ErrorResponse> handleException(
+    Exception ex, int statusCode, String reasonPhrase, Object message
+)
+```
+
+**Caratteristiche:**
+
+- Accetta l'istanza dell'eccezione e i parametri già estratti
+- Necessario perché le eccezioni Spring native non hanno un'interfaccia comune
+- Ogni handler method estrae manualmente i dati specifici, poi delega al metodo helper per logging e costruzione della risposta
 
 ### Formato Risposta Errore
 
@@ -835,8 +891,22 @@ Tutte le risposte di errore seguono il formato standardizzato:
 ```json
 {
   "statusCode": 400,
-  "error": "Bad Request",
+  "reason": "Bad Request",
   "message": "Messaggio di errore",
+  "timestamp": "2024-01-01T10:00:00Z"
+}
+```
+
+**Per errori di validazione multipli**, il campo `message` può essere un oggetto:
+
+```json
+{
+  "statusCode": 400,
+  "reason": "Bad Request",
+  "message": {
+    "email": "Email non valida",
+    "password": "Password troppo corta"
+  },
   "timestamp": "2024-01-01T10:00:00Z"
 }
 ```
@@ -844,8 +914,10 @@ Tutte le risposte di errore seguono il formato standardizzato:
 **Note:**
 
 - Il campo `message` può essere una `String` o un `Object` (es: `Map<String, String>` per errori di validazione multipli)
+- Il campo `reason` contiene la frase di errore HTTP standardizzata (es: "Bad Request", "Not Found")
 - Il campo `timestamp` viene aggiunto automaticamente in formato UTC
 - Nessuno stack trace viene esposto nelle risposte per motivi di sicurezza
+- Il logging è consistente: tutti i log utilizzano il formato `{ExceptionName}: {statusCode} - {message}`
 
 ## 🗺️ MapStruct - Mapping Automatico
 
