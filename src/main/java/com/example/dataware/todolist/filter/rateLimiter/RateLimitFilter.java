@@ -43,10 +43,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return !path.equals("/auth/login")
-                && !path.equals("/auth/logout")
-                && !path.equals("/auth/register")
-                && !path.equals("/auth/refresh-token");
+        return !path.startsWith("/auth");
     }
 
     @Override
@@ -55,7 +52,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
 
-        String clientIp = getClientIp(request);
+        String clientIp = request.getRemoteAddr();
         String identifier = "auth:" + clientIp;
 
         if (!rateLimiterService.isAllowed(identifier, MAX_REQUESTS, WINDOW_SECONDS)) {
@@ -78,25 +75,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
         response.setHeader("X-RateLimit-Reset", String.valueOf(System.currentTimeMillis() / 1000 + WINDOW_SECONDS));
 
         filterChain.doFilter(request, response);
-    }
-
-    /**
-     * Estrae l'IP del client dalla richiesta, considerando anche i proxy/load
-     * balancer.
-     */
-    private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty() && !"unknown".equalsIgnoreCase(xForwardedFor)) {
-            // Prende il primo IP della lista (il client originale)
-            return xForwardedFor.split(",")[0].trim();
-        }
-
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isEmpty() && !"unknown".equalsIgnoreCase(xRealIp)) {
-            return xRealIp;
-        }
-
-        return request.getRemoteAddr();
     }
 
     private void sendError(HttpServletResponse response, String message) throws IOException {

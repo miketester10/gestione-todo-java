@@ -6,6 +6,7 @@ import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.command.CommandAsyncExecutor;
 import org.redisson.config.Config;
+import org.redisson.config.SingleServerConfig;
 import org.springframework.beans.factory.annotation.Value;
 
 import org.springframework.context.annotation.Bean;
@@ -35,7 +36,8 @@ public class RedisConfig {
     @Bean(destroyMethod = "shutdown")
     public RedissonClient redissonClient() {
         Config config = new Config();
-        var singleServerConfig = config.useSingleServer()
+        SingleServerConfig singleServerConfig = config
+                .useSingleServer()
                 .setAddress("redis://" + redisHost + ":" + redisPort);
 
         if (redisPassword != null && !redisPassword.isEmpty()) {
@@ -56,7 +58,8 @@ public class RedisConfig {
         executorField.setAccessible(true);
         CommandAsyncExecutor executor = (CommandAsyncExecutor) executorField.get(redissonClient);
 
-        return RedissonBasedProxyManager.builderFor(executor)
+        return RedissonBasedProxyManager
+                .builderFor(executor)
                 .build();
 
     }
