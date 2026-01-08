@@ -1,7 +1,8 @@
 package com.example.dataware.todolist.filter.rateLimiter.service;
 
 import java.time.Duration;
-
+import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.springframework.stereotype.Service;
@@ -9,8 +10,10 @@ import org.springframework.stereotype.Service;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.BucketConfiguration;
+import io.github.bucket4j.ConsumptionProbe;
 import io.github.bucket4j.distributed.proxy.ProxyManager;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -25,15 +28,40 @@ public class RateLimiterService {
 
     private final ProxyManager<String> proxyManager;
 
-    public boolean isAllowed(String key, int maxRequests, long windowSeconds) {
-        Bucket bucket = getBucket(key, maxRequests, windowSeconds);
-        boolean allowed = bucket.tryConsume(1);
-        return allowed;
+    /**
+     * Risultato della verifica del rate limit.
+     * Contiene tutte le informazioni necessarie per gli header di risposta.
+     */
+    @Getter
+    @RequiredArgsConstructor
+    public static class RateLimitResult {
+        private final boolean allowed;
+        private final long remaining;
+        private final Long resetTimeSeconds;
     }
 
-    public long getRemainingRequests(String key, int maxRequests, long windowSeconds) {
+    /**
+     * Verifica se la richiesta è consentita e restituisce tutte le informazioni
+     * necessarie per gli header di risposta in una singola chiamata.
+     */
+    public RateLimitResult checkRateLimit(String key, int maxRequests, long windowSeconds) {
         Bucket bucket = getBucket(key, maxRequests, windowSeconds);
-        return bucket.getAvailableTokens();
+
+        // Usa tryConsumeAndReturnRemaining per ottenere tutte le info in una chiamata
+        ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
+        boolean allowed = probe.isConsumed();
+        long remaining = Math.max(probe.getRemainingTokens(), 0); // Difensivo, ci assicuriamo che il numero non sia mai negativo.
+
+        // Calcola il reset time solo se l'endpoint è stato limitato,
+        // basandosi sul prossimo refill
+        Long resetTimeSeconds = null;
+        if (!probe.isConsumed()) {
+            resetTimeSeconds = Instant.now().getEpochSecond()
+                    + TimeUnit.NANOSECONDS.toSeconds(
+                            probe.getNanosToWaitForRefill());
+        }
+
+        return new RateLimitResult(allowed, remaining, resetTimeSeconds);
     }
 
     /**
