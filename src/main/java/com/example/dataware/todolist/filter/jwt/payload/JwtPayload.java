@@ -1,4 +1,4 @@
-package com.example.dataware.todolist.jwt;
+package com.example.dataware.todolist.filter.jwt.payload;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

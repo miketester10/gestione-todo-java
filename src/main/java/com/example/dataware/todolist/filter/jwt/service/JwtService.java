@@ -1,4 +1,4 @@
-package com.example.dataware.todolist.jwt.service;
+package com.example.dataware.todolist.filter.jwt.service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.example.dataware.todolist.entity.User;
-import com.example.dataware.todolist.jwt.enums.TokenType;
+import com.example.dataware.todolist.filter.jwt.enums.TokenType;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

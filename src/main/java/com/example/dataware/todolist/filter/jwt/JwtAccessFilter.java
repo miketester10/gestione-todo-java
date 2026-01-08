@@ -1,4 +1,4 @@
-package com.example.dataware.todolist.jwt.filter;
+package com.example.dataware.todolist.filter.jwt;
 
 import java.io.IOException;
 import java.util.List;
@@ -12,9 +12,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.example.dataware.todolist.exception.ErrorResponse;
-import com.example.dataware.todolist.jwt.JwtPayload;
-import com.example.dataware.todolist.jwt.enums.TokenType;
-import com.example.dataware.todolist.jwt.service.JwtService;
+import com.example.dataware.todolist.filter.jwt.enums.TokenType;
+import com.example.dataware.todolist.filter.jwt.payload.JwtPayload;
+import com.example.dataware.todolist.filter.jwt.service.JwtService;
 
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;

@@ -9,7 +9,7 @@ import com.example.dataware.todolist.dto.validator.UserDto;
 import com.example.dataware.todolist.entity.User;
 import com.example.dataware.todolist.exception.custom.EmailConflictException;
 import com.example.dataware.todolist.exception.custom.InvalidCredentialsException;
-import com.example.dataware.todolist.jwt.service.JwtService;
+import com.example.dataware.todolist.filter.jwt.service.JwtService;
 import com.example.dataware.todolist.repository.UserRepository;
 import com.example.dataware.todolist.s3.S3Properties;
 import com.example.dataware.todolist.service.EncryptionService;

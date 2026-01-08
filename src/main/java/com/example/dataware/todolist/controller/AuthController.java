@@ -16,7 +16,7 @@ import com.example.dataware.todolist.dto.response.builder.SuccessResponseBuilder
 import com.example.dataware.todolist.dto.validator.LoginDto;
 import com.example.dataware.todolist.dto.validator.UserDto;
 import com.example.dataware.todolist.entity.User;
-import com.example.dataware.todolist.jwt.JwtPayload;
+import com.example.dataware.todolist.filter.jwt.payload.JwtPayload;
 import com.example.dataware.todolist.mapper.UserMapper;
 import com.example.dataware.todolist.service.interfaces.AuthService;
 
