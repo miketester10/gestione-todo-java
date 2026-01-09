@@ -95,18 +95,18 @@ src/main/java/com/example/dataware/todolist/
 │   ├── jwt/
 │   │   ├── enums/
 │   │   │   └── TokenType.java       # Enum per distinguere ACCESS e REFRESH token
+│   │   ├── payload/
+│   │   │   └── JwtPayload.java      # Payload JWT (userId, email)
+│   │   ├── service/
+│   │   │   └── JwtService.java      # Servizio gestione JWT (generazione e validazione)
 │   │   ├── JwtAccessFilter.java     # Filtro per validazione access token
 │   │   └── JwtRefreshFilter.java    # Filtro per validazione refresh token
 │   └── rateLimiter/
 │       ├── enums/
 │       │   └── RateLimitEndpoint.java  # Enum endpoint con limiti configurabili
-│       ├── RateLimitFilter.java     # Filtro per applicare rate limiting
-│       └── service/
-│           └── RateLimiteService.java  # Servizio rate limiting con Bucket4j e Redis
-├── jwt/
-│   ├── JwtPayload.java              # Payload JWT (userId, email)
-│   └── service/
-│       └── JwtService.java          # Servizio gestione JWT (generazione e validazione)
+│       ├── service/
+│       │   └── RateLimiteService.java  # Servizio rate limiting con Bucket4j e Redis
+│       └── RateLimitFilter.java     # Filtro per applicare rate limiting
 ├── mapper/
 │   ├── TodoMapper.java              # Interfaccia MapStruct per mapping Todo ↔ DTO
 │   └── UserMapper.java              # Interfaccia MapStruct per mapping User ↔ DTO
