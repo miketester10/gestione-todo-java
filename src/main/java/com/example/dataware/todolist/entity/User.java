@@ -49,7 +49,7 @@ public class User extends BaseEntity {
     @Column(name = "refresh_token", length = 500)
     private String refreshToken;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.EAGER, cascade = CascadeType.REMOVE)
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     @Builder.Default
     private List<Todo> todos = new ArrayList<>();
 
