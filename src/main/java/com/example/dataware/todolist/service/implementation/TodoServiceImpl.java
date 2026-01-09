@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.example.dataware.todolist.dto.validator.TodoDto;
 import com.example.dataware.todolist.dto.validator.TodoUpdateDto;
 import com.example.dataware.todolist.entity.Todo;
@@ -30,6 +31,7 @@ public class TodoServiceImpl implements TodoService {
     private final UserService userService;
 
     @Override
+    @Transactional(readOnly = true) // Ottimizza le performance per le operazioni di lettura
     public Page<Todo> findAll(String email, int page, int limit, Boolean completed, Sort sort) {
         User user = userService.findOne(email);
 
@@ -60,6 +62,7 @@ public class TodoServiceImpl implements TodoService {
     }
 
     @Override
+    @Transactional(readOnly = true) // Lettura sicura senza lock in scrittura
     public Todo findOne(Long todoId, String email) {
         User user = userService.findOne(email);
         return todoRepository.findOneByIdAndUser(todoId, user)
@@ -67,6 +70,7 @@ public class TodoServiceImpl implements TodoService {
     }
 
     @Override
+    @Transactional // Unica transazione per salvataggio e associazioni
     public Todo create(TodoDto todoDto, String email) {
         User user = userService.findOne(email);
         Todo todo = Todo.builder()
@@ -77,6 +81,7 @@ public class TodoServiceImpl implements TodoService {
     }
 
     @Override
+    @Transactional // Garantisce che il fetch e l'update avvengano nella stessa transazione
     public Todo update(Long todoId, TodoUpdateDto todoUpdateDto, String email) {
         Todo todo = findOne(todoId, email);
 
@@ -93,6 +98,7 @@ public class TodoServiceImpl implements TodoService {
     }
 
     @Override
+    @Transactional // Assicura che l'eliminazione sia atomica
     public void delete(Long todoId, String email) {
         Todo todo = findOne(todoId, email);
         todoRepository.delete(todo);

@@ -2,6 +2,7 @@ package com.example.dataware.todolist.service.implementation;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.dataware.todolist.dto.response.TokenResponse;
 import com.example.dataware.todolist.dto.validator.LoginDto;
@@ -32,6 +33,7 @@ public class AuthServiceImpl implements AuthService {
     private final S3Properties S3Properties;
 
     @Override
+    @Transactional // Garantisce che la creazione dell'utente sia atomica
     public User register(UserDto userDto) {
         if (userRepository.existsByEmail(userDto.getEmail())) {
             throw new EmailConflictException("Email già registrata");
@@ -50,6 +52,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional // Garantisce l'atomicità dell'aggiornamento del refresh token nel DB
     public TokenResponse login(LoginDto loginDto) {
         User user = userRepository.findByEmail(loginDto.getEmail())
                 .orElseThrow(() -> new InvalidCredentialsException("Email o password non validi"));
@@ -62,12 +65,14 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional // Necessario per l'aggiornamento coerente del refresh token
     public TokenResponse refreshToken(String email) {
         User user = userService.findOne(email);
         return generateAndPersistTokens(user);
     }
 
     @Override
+    @Transactional // Assicura che la rimozione del token avvenga correttamente
     public void logout(String email) {
         User user = userService.findOne(email);
         user.setRefreshToken(null);

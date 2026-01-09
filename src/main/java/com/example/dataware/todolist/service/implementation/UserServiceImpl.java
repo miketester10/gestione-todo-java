@@ -5,6 +5,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.dataware.todolist.entity.User;
@@ -27,18 +28,21 @@ public class UserServiceImpl implements UserService {
     private final S3Service S3Service;
 
     @Override
+    @Transactional(readOnly = true) // Ottimizza la lettura paginata
     public Page<User> findAll(int page, int limit) {
         Pageable pageable = PageRequest.of(page, limit, Sort.by(Sort.Direction.ASC, "id"));
         return userRepository.findAll(pageable);
     }
 
     @Override
+    @Transactional(readOnly = true) // Lettura sicura
     public User findOne(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("Utente non trovato."));
     }
 
     @Override
+    @Transactional // Gestisce la consistenza tra S3 (logica manuale) e DB
     public User updateProfileImage(String email, MultipartFile file) {
         User user = findOne(email);
 
@@ -60,6 +64,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional // Assicura che l'aggiornamento DB avvenga correttamente prima di rimuovere da
+                   // S3
     public User deleteProfileImage(String email) {
         User user = findOne(email);
         String oldImageUrl = user.getProfileImageUrl();
@@ -76,6 +82,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional // Eliminazione atomica dal DB
     public void delete(String email) {
         User user = findOne(email);
         userRepository.delete(user);
