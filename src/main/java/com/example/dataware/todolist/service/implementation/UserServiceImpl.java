@@ -28,21 +28,21 @@ public class UserServiceImpl implements UserService {
     private final S3Service S3Service;
 
     @Override
-    @Transactional(readOnly = true) // Ottimizza la lettura paginata
+    @Transactional(readOnly = true)
     public Page<User> findAll(int page, int limit) {
         Pageable pageable = PageRequest.of(page, limit, Sort.by(Sort.Direction.ASC, "id"));
         return userRepository.findAll(pageable);
     }
 
     @Override
-    @Transactional(readOnly = true) // Lettura sicura
+    @Transactional(readOnly = true)
     public User findOne(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("Utente non trovato."));
     }
 
     @Override
-    @Transactional // Gestisce la consistenza tra S3 (logica manuale) e DB
+    @Transactional
     public User updateProfileImage(String email, MultipartFile file) {
         User user = findOne(email);
 
@@ -64,8 +64,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional // Assicura che l'aggiornamento DB avvenga correttamente prima di rimuovere da
-                   // S3
+    @Transactional
     public User deleteProfileImage(String email) {
         User user = findOne(email);
         String oldImageUrl = user.getProfileImageUrl();
@@ -82,7 +81,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional // Eliminazione atomica dal DB
+    @Transactional
     public void delete(String email) {
         User user = findOne(email);
         userRepository.delete(user);

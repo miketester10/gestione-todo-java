@@ -33,7 +33,7 @@ public class AuthServiceImpl implements AuthService {
     private final S3Properties S3Properties;
 
     @Override
-    @Transactional // Garantisce che la creazione dell'utente sia atomica
+    @Transactional
     public User register(UserDto userDto) {
         if (userRepository.existsByEmail(userDto.getEmail())) {
             throw new EmailConflictException("Email già registrata");
@@ -52,7 +52,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional // Garantisce l'atomicità dell'aggiornamento del refresh token nel DB
+    @Transactional
     public TokenResponse login(LoginDto loginDto) {
         User user = userRepository.findByEmail(loginDto.getEmail())
                 .orElseThrow(() -> new InvalidCredentialsException("Email o password non validi"));
@@ -65,14 +65,14 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional // Necessario per l'aggiornamento coerente del refresh token
+    @Transactional
     public TokenResponse refreshToken(String email) {
         User user = userService.findOne(email);
         return generateAndPersistTokens(user);
     }
 
     @Override
-    @Transactional // Assicura che la rimozione del token avvenga correttamente
+    @Transactional
     public void logout(String email) {
         User user = userService.findOne(email);
         user.setRefreshToken(null);

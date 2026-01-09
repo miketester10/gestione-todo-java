@@ -31,7 +31,7 @@ public class TodoServiceImpl implements TodoService {
     private final UserService userService;
 
     @Override
-    @Transactional(readOnly = true) // Ottimizza le performance per le operazioni di lettura
+    @Transactional(readOnly = true)
     public Page<Todo> findAll(String email, int page, int limit, Boolean completed, Sort sort) {
         User user = userService.findOne(email);
 
@@ -62,7 +62,7 @@ public class TodoServiceImpl implements TodoService {
     }
 
     @Override
-    @Transactional(readOnly = true) // Lettura sicura senza lock in scrittura
+    @Transactional(readOnly = true)
     public Todo findOne(Long todoId, String email) {
         User user = userService.findOne(email);
         return todoRepository.findOneByIdAndUser(todoId, user)
@@ -70,7 +70,7 @@ public class TodoServiceImpl implements TodoService {
     }
 
     @Override
-    @Transactional // Unica transazione per salvataggio e associazioni
+    @Transactional
     public Todo create(TodoDto todoDto, String email) {
         User user = userService.findOne(email);
         Todo todo = Todo.builder()
@@ -81,7 +81,7 @@ public class TodoServiceImpl implements TodoService {
     }
 
     @Override
-    @Transactional // Garantisce che il fetch e l'update avvengano nella stessa transazione
+    @Transactional
     public Todo update(Long todoId, TodoUpdateDto todoUpdateDto, String email) {
         Todo todo = findOne(todoId, email);
 
@@ -98,7 +98,7 @@ public class TodoServiceImpl implements TodoService {
     }
 
     @Override
-    @Transactional // Assicura che l'eliminazione sia atomica
+    @Transactional
     public void delete(Long todoId, String email) {
         Todo todo = findOne(todoId, email);
         todoRepository.delete(todo);
