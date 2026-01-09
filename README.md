@@ -21,6 +21,9 @@ Applicazione backend che fornisce un sistema completo di gestione di todo list c
 - **MapStruct** 1.5.5 - Mapping automatico Entity ↔ DTO (compile-time)
 - **Jakarta Validation** - Validazione dei dati
 - **Jackson** - Serializzazione/deserializzazione JSON
+- **Bucket4j** - Rate limiting distribuito con algoritmo token bucket
+- **Redis** - Storage distribuito per il rate limiting (tramite Redisson)
+- **Redisson** - Client Java Redis per integrazione con Bucket4j
 
 ## 📦 Dipendenze Principali
 
@@ -38,6 +41,9 @@ Applicazione backend che fornisce un sistema completo di gestione di todo list c
 - `mapstruct-processor` - Annotation processor per MapStruct
 - `lombok-mapstruct-binding` (0.2.0) - Integrazione Lombok-MapStruct
 - `spring-boot-devtools` - Strumenti di sviluppo
+- `bucket4j-core` - Libreria rate limiting con algoritmo token bucket
+- `bucket4j-redis` - Integrazione Bucket4j con Redis tramite Redisson
+- `redisson` - Client Java Redis per operazioni distribuite
 
 ## 🏗️ Architettura del Progetto
 
@@ -45,7 +51,8 @@ Applicazione backend che fornisce un sistema completo di gestione di todo list c
 src/main/java/com/example/dataware/todolist/
 ├── config/
 │   ├── SecurityConfig.java          # Configurazione Spring Security
-│   └── S3Config.java                # Configurazione client AWS S3
+│   ├── S3Config.java                # Configurazione client AWS S3
+│   └── RedisConfig.java             # Configurazione Redis e Bucket4j per rate limiting
 ├── controller/
 │   ├── AuthController.java          # Endpoint autenticazione
 │   ├── TodoController.java          # Endpoint gestione todo
@@ -84,12 +91,19 @@ src/main/java/com/example/dataware/todolist/
 │       ├── S3UploadException.java           # Eccezione errore upload S3
 │       ├── TodoNotFoundException.java       # Eccezione todo non trovato
 │       └── UserNotFoundException.java       # Eccezione utente non trovato
-├── jwt/
-│   ├── enums/
-│   │   └── TokenType.java           # Enum per distinguere ACCESS e REFRESH token
-│   ├── filter/
+├── filter/
+│   ├── jwt/
+│   │   ├── enums/
+│   │   │   └── TokenType.java       # Enum per distinguere ACCESS e REFRESH token
 │   │   ├── JwtAccessFilter.java     # Filtro per validazione access token
 │   │   └── JwtRefreshFilter.java    # Filtro per validazione refresh token
+│   └── rateLimiter/
+│       ├── enums/
+│       │   └── RateLimitEndpoint.java  # Enum endpoint con limiti configurabili
+│       ├── RateLimitFilter.java     # Filtro per applicare rate limiting
+│       └── service/
+│           └── RateLimiteService.java  # Servizio rate limiting con Bucket4j e Redis
+├── jwt/
 │   ├── JwtPayload.java              # Payload JWT (userId, email)
 │   └── service/
 │       └── JwtService.java          # Servizio gestione JWT (generazione e validazione)
@@ -138,6 +152,10 @@ L'applicazione utilizza **JWT (JSON Web Token)** con sistema di **Access Token**
 - I token utilizzano chiavi segrete separate per maggiore sicurezza
 - I refresh token vengono crittografati prima di essere salvati nel database
 - La sessione è configurata come `STATELESS`
+- **Ordine dei filtri**: I filtri sono configurati nell'ordine seguente nella catena di Spring Security:
+  1. `RateLimitFilter` - Applica il rate limiting (prima di tutto)
+  2. `JwtAccessFilter` - Valida gli access token
+  3. `JwtRefreshFilter` - Valida i refresh token (solo per `/auth/refresh-token`)
 - Due filtri separati gestiscono la validazione: `JwtAccessFilter` per gli access token e `JwtRefreshFilter` per i refresh token
 - **Autorizzazione basata su ruoli**: Il sistema supporta due ruoli (`USER` e `ADMIN`) e utilizza `@PreAuthorize` per controllare l'accesso agli endpoint in base al ruolo dell'utente
 - Il ruolo viene estratto dal token JWT e aggiunto alle authorities di Spring Security con il prefisso `ROLE_`
@@ -602,6 +620,9 @@ AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
 AWS_REGION=us-east-1
 AWS_S3_BUCKET=your-bucket-name
 DEFAULT_AVATAR_URL=https://default-avatar-url.com/avatar.png
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
 ```
 
 **Descrizione variabili:**
@@ -620,6 +641,9 @@ DEFAULT_AVATAR_URL=https://default-avatar-url.com/avatar.png
 - `AWS_REGION` - Regione AWS dove si trova il bucket S3 (es: `us-east-1`, `eu-west-1`)
 - `AWS_S3_BUCKET` - Nome del bucket S3 per lo storage delle immagini profilo
 - `DEFAULT_AVATAR_URL` - URL dell'avatar di default da utilizzare quando l'utente non ha un'immagine profilo
+- `REDIS_HOST` - Host di Redis (default: `localhost`)
+- `REDIS_PORT` - Porta di Redis (default: `6379`)
+- `REDIS_PASSWORD` - Password di Redis (opzionale, lasciare vuoto se non configurata)
 
 ### application.properties
 
@@ -637,6 +661,7 @@ Il file `application.properties` è configurato con:
 - **Method Security:** Abilitato tramite `@EnableMethodSecurity` in `SecurityConfig` per supportare l'autorizzazione basata su ruoli con `@PreAuthorize`
 - **Multipart file upload:** Dimensione massima file 20MB (`spring.servlet.multipart.max-file-size=20MB`)
 - **AWS S3:** Configurazione per l'integrazione con Amazon S3 per lo storage delle immagini profilo
+- **Redis:** Configurazione per il rate limiting distribuito (host, port, password configurabili)
 
 ## 🚀 Installazione e Avvio
 
@@ -645,6 +670,7 @@ Il file `application.properties` è configurato con:
 - Java 17 o superiore
 - Maven 3.6+
 - PostgreSQL in esecuzione
+- Redis in esecuzione (per il rate limiting distribuito)
 
 ### Passaggi
 
@@ -661,10 +687,20 @@ cd todolist
 createdb todolist
 ```
 
-3. **Configurare le variabili d'ambiente**
-   Creare il file `.env` nella root del progetto con le credenziali del database e la chiave JWT.
+3. **Avviare Redis** (se non già in esecuzione)
 
-4. **Compilare e avviare l'applicazione**
+```bash
+# Con Docker
+docker run -d -p 6379:6379 redis:latest
+
+# Oppure con redis-server (se installato localmente)
+redis-server
+```
+
+4. **Configurare le variabili d'ambiente**
+   Creare il file `.env` nella root del progetto con le credenziali del database, la chiave JWT e le configurazioni Redis.
+
+5. **Compilare e avviare l'applicazione**
 
 ```bash
 ./mvnw spring-boot:run
@@ -1203,6 +1239,172 @@ curl -X DELETE http://localhost:3001/users/profile/image \
 - Il path su S3 è strutturato: `users/{userId}/profile.{ext}`
 - Se l'utente carica una nuova immagine, quella precedente viene eliminata automaticamente
 - L'eliminazione del vecchio file avviene solo dopo il successo dell'operazione per garantire consistenza
+
+## ⏱️ Sistema di Rate Limiting
+
+Il progetto implementa un sistema completo di **rate limiting distribuito** utilizzando **Bucket4j** con **Redis** per proteggere gli endpoint critici da abusi e attacchi DDoS.
+
+### Caratteristiche
+
+- **Rate Limiting Distribuito**: Utilizza Redis per sincronizzare i limiti tra più istanze dell'applicazione
+- **Algoritmo Token Bucket**: Implementato tramite Bucket4j con refill intervallato
+- **Configurazione per Endpoint**: Ogni endpoint può avere limiti personalizzati
+- **Rilevamento IP Intelligente**: Gestisce correttamente gli IP dei client dietro proxy e load balancer
+- **Header Informativi**: Restituisce header HTTP standard (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`)
+- **Single Request Check**: Ottimizzato per verificare il rate limit con una singola chiamata a Redis
+
+### Architettura
+
+#### Componenti Principali
+
+1. **RateLimitFilter**: Filtro Spring che applica il rate limiting
+
+   - Estende `OncePerRequestFilter` per essere eseguito una sola volta per richiesta
+   - Posizionato prima di `JwtAccessFilter` nella catena dei filtri
+   - Estrae l'IP reale del client considerando proxy/load balancer
+   - Imposta gli header di rate limit in tutte le risposte
+
+2. **RateLimiteService**: Servizio che gestisce la logica di rate limiting
+
+   - Utilizza Bucket4j con Redis (tramite Redisson)
+   - Restituisce tutte le informazioni necessarie in una singola chiamata (`checkRateLimit`)
+   - Calcola il reset time solo quando necessario (quando il limite è stato superato)
+
+3. **RateLimitEndpoint**: Enum che configura gli endpoint protetti
+
+   - Ogni endpoint ha: metodo HTTP, path, numero massimo richieste, finestra temporale
+   - Matching preciso per metodo HTTP e path
+   - Facilmente estendibile per aggiungere nuovi endpoint
+
+4. **RedisConfig**: Configurazione Redis e Bucket4j
+   - Configura Redisson client per connessione a Redis
+   - Configura ProxyManager per Bucket4j con supporto distribuito
+   - Supporta autenticazione Redis (password opzionale)
+
+### Endpoint Protetti
+
+Il sistema protegge i seguenti endpoint con rate limiting:
+
+| Endpoint               | Metodo | Limite      | Finestra   |
+| ---------------------- | ------ | ----------- | ---------- |
+| `/auth/register`       | POST   | 4 richieste | 60 secondi |
+| `/auth/login`          | POST   | 4 richieste | 60 secondi |
+| `/auth/logout`         | DELETE | 4 richieste | 60 secondi |
+| `/auth/refresh-token`  | POST   | 4 richieste | 60 secondi |
+| `/users/profile/image` | POST   | 2 richieste | 60 secondi |
+| `/users/profile/image` | DELETE | 2 richieste | 60 secondi |
+
+### Come Funziona
+
+1. **Richiesta Incoming**: Il `RateLimitFilter` intercetta tutte le richieste
+2. **Verifica Endpoint**: Controlla se l'endpoint richiede rate limiting tramite l'enum `RateLimitEndpoint`
+3. **Estrae IP Client**: Estrae l'IP reale del client considerando header `X-Forwarded-For` e `X-Real-IP`
+4. **Genera Key**: Crea una chiave univoca nel formato: `{ENDPOINT_NAME}:{METHOD}:{CLIENT_IP}`
+5. **Verifica Limite**: Chiama `RateLimiteService.checkRateLimit()` che:
+   - Ottiene o crea un bucket per la chiave
+   - Tenta di consumare un token dal bucket
+   - Restituisce tutte le informazioni necessarie (allowed, remaining, resetTime)
+6. **Imposta Header**: Imposta gli header HTTP di rate limit nella risposta
+7. **Gestisce Esito**: Se il limite è stato superato, restituisce `429 Too Many Requests`, altrimenti prosegue con la richiesta
+
+### Rilevamento IP Client
+
+Il sistema gestisce correttamente gli IP dei client in diversi scenari:
+
+- **Proxy/Load Balancer**: Controlla l'header `X-Forwarded-For` e prende il primo IP della lista
+- **X-Real-IP**: Fallback all'header `X-Real-IP` se presente
+- **Connessione Diretta**: Fallback a `request.getRemoteAddr()` per connessioni dirette
+
+```java
+private String getClientIpAddress(HttpServletRequest request) {
+    // 1. Controlla X-Forwarded-For (può contenere lista di IP)
+    // 2. Controlla X-Real-IP
+    // 3. Fallback a getRemoteAddr()
+}
+```
+
+### Header HTTP
+
+Tutte le risposte includono gli header di rate limiting:
+
+- **X-RateLimit-Limit**: Numero massimo di richieste consentite nella finestra temporale
+- **X-RateLimit-Remaining**: Numero di richieste rimanenti nella finestra corrente
+- **X-RateLimit-Reset**: Timestamp Unix (in secondi) quando il bucket si resetta (solo quando limitato)
+
+**Esempio di risposta:**
+
+```
+X-RateLimit-Limit: 4
+X-RateLimit-Remaining: 2
+X-RateLimit-Reset: 1704110400
+```
+
+### Risposta Rate Limit Superato
+
+Quando il rate limit viene superato, il sistema restituisce:
+
+**Status Code:** `429 Too Many Requests`
+
+**Response Body:**
+
+```json
+{
+  "statusCode": 429,
+  "reason": "Too Many Requests",
+  "message": "Too many requests. Maximum 4 requests per 1 minute(s) allowed.",
+  "timestamp": "2024-01-01T10:00:00Z"
+}
+```
+
+### Algoritmo Token Bucket
+
+Bucket4j utilizza l'algoritmo **Token Bucket** con refill intervallato:
+
+- **Capacity**: Numero massimo di token nel bucket (es: 4)
+- **Refill**: Il bucket si riempie completamente ogni `windowSeconds` (es: 60 secondi)
+- **Consumption**: Ogni richiesta consuma 1 token
+- **Distribuito**: I bucket sono sincronizzati tra tutte le istanze tramite Redis
+
+### Configurazione Redis
+
+Il sistema utilizza Redis per il rate limiting distribuito:
+
+- **Host**: Configurabile tramite `REDIS_HOST` (default: `localhost`)
+- **Port**: Configurabile tramite `REDIS_PORT` (default: `6379`)
+- **Password**: Configurabile tramite `REDIS_PASSWORD` (opzionale)
+- **Client**: Redisson per operazioni distribuite
+- **Proxy Manager**: Bucket4j RedissonBasedProxyManager per sincronizzazione
+
+### Vantaggi
+
+- ✅ **Protezione DDoS**: Previene attacchi di tipo Denial of Service limitando le richieste
+- ✅ **Protezione Brute Force**: Limita i tentativi di login/registrazione
+- ✅ **Distribuito**: Funziona correttamente con più istanze dell'applicazione
+- ✅ **Efficiente**: Singola chiamata a Redis per verificare il limite
+- ✅ **Trasparente**: Header informativi per il client
+- ✅ **Configurabile**: Facile aggiungere/modificare limiti per endpoint
+- ✅ **IP-Aware**: Gestisce correttamente proxy e load balancer
+- ✅ **Produzione-Ready**: Ottimizzato per ambienti di produzione
+
+### Estendere il Rate Limiting
+
+Per aggiungere un nuovo endpoint al rate limiting:
+
+1. Aggiungi una nuova entry all'enum `RateLimitEndpoint`:
+
+```java
+NEW_ENDPOINT(HttpMethod.POST, "/api/new-endpoint", 10, 60);
+```
+
+2. Il filtro applicherà automaticamente il rate limiting all'endpoint specificato.
+
+### Sicurezza
+
+- ✅ **IP-Based**: Il rate limiting è basato sull'IP del client
+- ✅ **Distribuito**: I limiti sono sincronizzati tra tutte le istanze
+- ✅ **Non By-Passabile**: Il filtro è posizionato all'inizio della catena
+- ✅ **Header Standard**: Utilizza header HTTP standard per trasparenza
+- ✅ **Logging**: Registra tutti i tentativi di superamento del limite
 
 ## 👤 Autore
 
