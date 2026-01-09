@@ -27,7 +27,6 @@ import lombok.experimental.SuperBuilder;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class User extends BaseEntity {
 
     @Column(nullable = false)

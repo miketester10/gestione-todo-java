@@ -18,7 +18,6 @@ import lombok.experimental.SuperBuilder;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class Todo extends BaseEntity {
 
     @Column(nullable = false)
