@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class RateLimiterService {
+public class RateLimiteService {
 
     private final ProxyManager<String> proxyManager;
 
@@ -50,7 +50,8 @@ public class RateLimiterService {
         // Usa tryConsumeAndReturnRemaining per ottenere tutte le info in una chiamata
         ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
         boolean allowed = probe.isConsumed();
-        long remaining = Math.max(probe.getRemainingTokens(), 0); // Difensivo, ci assicuriamo che il numero non sia mai negativo.
+        long remaining = Math.max(probe.getRemainingTokens(), 0); // Difensivo, ci assicuriamo che il numero non sia mai
+                                                                  // negativo.
 
         // Calcola il reset time solo se l'endpoint è stato limitato,
         // basandosi sul prossimo refill

@@ -10,8 +10,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.example.dataware.todolist.exception.ErrorResponse;
 import com.example.dataware.todolist.filter.rateLimiter.enums.RateLimitEndpoint;
-import com.example.dataware.todolist.filter.rateLimiter.service.RateLimiterService;
-import com.example.dataware.todolist.filter.rateLimiter.service.RateLimiterService.RateLimitResult;
+import com.example.dataware.todolist.filter.rateLimiter.service.RateLimiteService;
+import com.example.dataware.todolist.filter.rateLimiter.service.RateLimiteService.RateLimitResult;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -30,7 +30,7 @@ import tools.jackson.databind.ObjectMapper;
 @RequiredArgsConstructor
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private final RateLimiterService rateLimiterService;
+    private final RateLimiteService rateLimiteService;
     private final ObjectMapper objectMapper;
 
     /**
@@ -38,8 +38,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
      */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        return RateLimitEndpoint.fromPath(path).isEmpty();
+        return RateLimitEndpoint.from(request).isEmpty();
     }
 
     @Override
@@ -48,8 +47,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
 
-        String path = request.getRequestURI();
-        Optional<RateLimitEndpoint> endpointOptional = RateLimitEndpoint.fromPath(path);
+        Optional<RateLimitEndpoint> endpointOptional = RateLimitEndpoint.from(request);
 
         if (endpointOptional.isEmpty()) {
             filterChain.doFilter(request, response);
@@ -57,15 +55,17 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         RateLimitEndpoint endpoint = endpointOptional.get();
+        String method = endpoint.getMethod().name();
         String clientIp = getClientIpAddress(request);
-        String key = endpoint.name() + ":" + clientIp;
+
+        String key = endpoint.name() + ":" + method + ":" + clientIp;
 
         final int MAX_REQUESTS = endpoint.getMaxRequests();
         final long WINDOW_SECONDS = endpoint.getWindowSeconds();
 
         // Verifica il rate limit e ottiene tutte le informazioni in una singola
         // chiamata
-        RateLimitResult rateLimitResult = rateLimiterService.checkRateLimit(key, MAX_REQUESTS, WINDOW_SECONDS);
+        RateLimitResult rateLimitResult = rateLimiteService.checkRateLimit(key, MAX_REQUESTS, WINDOW_SECONDS);
 
         // Imposta gli header di rate limit
         setRateLimitHeaders(response, MAX_REQUESTS, rateLimitResult);
