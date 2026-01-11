@@ -8,7 +8,7 @@ Applicazione backend che fornisce un sistema completo di gestione di todo list c
 
 ## 🛠️ Tecnologie Utilizzate
 
-- **Spring Boot** 4.0.0
+- **Spring Boot** 4.0.1
 - **Java** 17
 - **Spring Security** - Autenticazione e autorizzazione
 - **Spring Security Crypto** - Crittografia dei refresh token salvati nel database
@@ -22,8 +22,8 @@ Applicazione backend che fornisce un sistema completo di gestione di todo list c
 - **Jakarta Validation** - Validazione dei dati
 - **Jackson** - Serializzazione/deserializzazione JSON
 - **Bucket4j** - Rate limiting distribuito con algoritmo token bucket
-- **Redis** - Storage distribuito per il rate limiting (tramite Redisson)
-- **Redisson** - Client Java Redis per integrazione con Bucket4j
+- **Lettuce** - Client Java Redis (driver ufficiale supportato da Spring)
+- **RedisService** - Servizio custom per operazioni generiche su Redis (caching, storage chiave-valore)
 
 ## 📦 Dipendenze Principali
 
@@ -42,8 +42,8 @@ Applicazione backend che fornisce un sistema completo di gestione di todo list c
 - `lombok-mapstruct-binding` (0.2.0) - Integrazione Lombok-MapStruct
 - `spring-boot-devtools` - Strumenti di sviluppo
 - `bucket4j-core` - Libreria rate limiting con algoritmo token bucket
-- `bucket4j-redis` - Integrazione Bucket4j con Redis tramite Redisson
-- `redisson` - Client Java Redis per operazioni distribuite
+- `lettuce-core` - Client Redis reattivo
+- `bucket4j_jdk17-lettuce` - Integrazione Bucket4j con Redis tramite Lettuce
 
 ## 🏗️ Architettura del Progetto
 
@@ -124,7 +124,8 @@ src/main/java/com/example/dataware/todolist/
 │   │   ├── AuthServiceImpl.java     # Implementazione servizio autenticazione
 │   │   ├── TodoServiceImpl.java     # Implementazione servizio todo
 │   │   └── UserServiceImpl.java     # Implementazione servizio utente
-│   └── EncryptionService.java       # Servizio crittografia/decrittografia refresh token
+│   ├── EncryptionService.java       # Servizio crittografia/decrittografia refresh token
+│   └── RedisService.java            # Servizio wrapper per operazioni Redis (set, get, delete)
 ├── s3/
 │   ├── S3Properties.java            # Proprietà configurazione S3
 │   └── S3Service.java               # Servizio gestione upload/delete file su S3
@@ -1266,7 +1267,7 @@ Il progetto implementa un sistema completo di **rate limiting distribuito** util
 
 2. **RateLimiteService**: Servizio che gestisce la logica di rate limiting
 
-   - Utilizza Bucket4j con Redis (tramite Redisson)
+   - Utilizza Bucket4j con Redis (tramite Lettuce)
    - Restituisce tutte le informazioni necessarie in una singola chiamata (`checkRateLimit`)
    - Calcola il reset time solo quando necessario (quando il limite è stato superato)
 
@@ -1277,7 +1278,7 @@ Il progetto implementa un sistema completo di **rate limiting distribuito** util
    - Facilmente estendibile per aggiungere nuovi endpoint
 
 4. **RedisConfig**: Configurazione Redis e Bucket4j
-   - Configura Redisson client per connessione a Redis
+   - Configura Lettuce client per connessione a Redis
    - Configura ProxyManager per Bucket4j con supporto distribuito
    - Supporta autenticazione Redis (password opzionale)
 
@@ -1372,8 +1373,8 @@ Il sistema utilizza Redis per il rate limiting distribuito:
 - **Host**: Configurabile tramite `REDIS_HOST` (default: `localhost`)
 - **Port**: Configurabile tramite `REDIS_PORT` (default: `6379`)
 - **Password**: Configurabile tramite `REDIS_PASSWORD` (opzionale)
-- **Client**: Redisson per operazioni distribuite
-- **Proxy Manager**: Bucket4j RedissonBasedProxyManager per sincronizzazione
+- **Client**: Lettuce per operazioni distribuite
+- **Proxy Manager**: Bucket4j Lettuce-based ProxyManager per sincronizzazione
 
 ### Vantaggi
 
