@@ -14,8 +14,18 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Configurazione per Redis con Bucket4j.
- * Configura Lettuce e ProxyManager per il rate limiting distribuito.
+ * Configurazione di Redis per l'applicazione.
+ * 
+ * Fornisce:
+ * 1. RedisClient generico per la connessione al server Redis.
+ * 2. Connessione per Bucket4j (String -> byte[]) per il rate limiting
+ * distribuito.
+ * 3. Connessione per dati applicativi leggibili (String -> String) per token,
+ * JSON e oggetti.
+ * 
+ * I bean creati gestiscono automaticamente la chiusura delle connessioni e
+ * delle risorse
+ * all'arresto dell'applicazione.
  */
 @Slf4j
 @Configuration
@@ -30,6 +40,9 @@ public class RedisConfig {
     @Value("${spring.data.redis.password}")
     private String redisPassword;
 
+    // --------------------------
+    // Connessione Lettuce generica
+    // --------------------------
     @Bean(destroyMethod = "shutdown")
     // Spring chiama redisClient.shutdown() allo stop dell'app.
     // Serve a chiudere correttamente thread ed event-loop interni di Lettuce
@@ -46,17 +59,33 @@ public class RedisConfig {
         return RedisClient.create(uriBuilder.build());
     }
 
+    // --------------------------
+    // Connessione per Bucket4j
+    // Key -> String
+    // Value -> byte[]
+    // --------------------------
     @Bean(destroyMethod = "close")
     // Spring chiama redisConnection.close() allo stop dell'app.
     // Serve a chiudere correttamente la connessione TCP verso Redis.
-    public StatefulRedisConnection<String, byte[]> redisConnection(RedisClient redisClient) {
+    public StatefulRedisConnection<String, byte[]> redisConnectionBucket4j(RedisClient redisClient) {
         return redisClient.connect(RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE));
     }
 
     @Bean
-    public ProxyManager<String> proxyManager(StatefulRedisConnection<String, byte[]> redisConnection) {
+    public ProxyManager<String> proxyManager(StatefulRedisConnection<String, byte[]> redisConnectionBucket4j) {
         return Bucket4jLettuce
-                .casBasedBuilder(redisConnection)
+                .casBasedBuilder(redisConnectionBucket4j)
                 .build();
+    }
+
+    // --------------------------
+    // Connessione per dati applicativi leggibili (token verifica email, json,
+    // oggetti, ecc..)
+    // Key -> String
+    // Value -> String
+    // --------------------------
+    @Bean(destroyMethod = "close")
+    public StatefulRedisConnection<String, String> redisConnectionApp(RedisClient redisClient) {
+        return redisClient.connect(RedisCodec.of(StringCodec.UTF8, StringCodec.UTF8));
     }
 }
