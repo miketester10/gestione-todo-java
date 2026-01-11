@@ -47,7 +47,9 @@ public class RedisConfig {
 
     @Bean
     public ProxyManager<String> proxyManager(RedissonClient redissonClient) {
-        return Bucket4jRedisson.casBasedBuilder(((Redisson) redissonClient).getCommandExecutor()).build();
+        return Bucket4jRedisson
+                .casBasedBuilder(((Redisson) redissonClient).getCommandExecutor())
+                .build();
     }
 
 }
