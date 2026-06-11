@@ -91,8 +91,8 @@ public class TodoController {
 
     @DeleteMapping("/{todoId}")
     public ResponseEntity<SuccessResponse<Void>> delete(
-            @Positive @AuthenticationPrincipal JwtPayload jwtPayload,
-            @PathVariable Long todoId) {
+            @AuthenticationPrincipal JwtPayload jwtPayload,
+            @Positive @PathVariable Long todoId) {
 
         todoService.delete(todoId, jwtPayload.getEmail());
         return apiResponseBuilder.success(HttpStatus.OK);
