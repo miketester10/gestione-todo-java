@@ -1,59 +1,72 @@
-{
-  "properties": [
-    {
-      "name": "security.jwt.access-secret",
-      "type": "java.lang.String",
-      "description": "A description for 'security.jwt.access-secret'"
-    },
-    {
-      "name": "security.jwt.access-expiration",
-      "type": "java.lang.String",
-      "description": "A description for 'security.jwt.access-expiration'"
-    },
-    {
-      "name": "security.jwt.refresh-secret",
-      "type": "java.lang.String",
-      "description": "A description for 'security.jwt.refresh-secret'"
-    },
-    {
-      "name": "security.jwt.refresh-expiration",
-      "type": "java.lang.String",
-      "description": "A description for 'security.jwt.refresh-expiration'"
-    },
-    {
-      "name": "security.encryption.key",
-      "type": "java.lang.String",
-      "description": "A description for 'security.encryption.key'"
-    },
-    {
-      "name": "security.encryption.salt",
-      "type": "java.lang.String",
-      "description": "A description for 'security.encryption.salt'"
-    },
-    {
-      "name": "s3.aws.access-key-id",
-      "type": "java.lang.String",
-      "description": "A description for 's3.aws.access-key-id'"
-    },
-    {
-      "name": "s3.aws.secret-access-key",
-      "type": "java.lang.String",
-      "description": "A description for 's3.aws.secret-access-key'"
-    },
-    {
-      "name": "s3.aws.region",
-      "type": "java.lang.String",
-      "description": "A description for 's3.aws.region'"
-    },
-    {
-      "name": "s3.aws.s3-bucket",
-      "type": "java.lang.String",
-      "description": "A description for 's3.aws.s3-bucket'"
-    },
-    {
-      "name": "s3.aws.default-avatar-url",
-      "type": "java.lang.String",
-      "description": "A description for 's3.aws.default-avatar-url'"
-    }
-  ]
-}
+{"properties": [
+  {
+    "name": "security.jwt.access-secret",
+    "type": "java.lang.String",
+    "description": "A description for 'security.jwt.access-secret'"
+  },
+  {
+    "name": "security.jwt.access-expiration",
+    "type": "java.lang.String",
+    "description": "A description for 'security.jwt.access-expiration'"
+  },
+  {
+    "name": "security.jwt.refresh-secret",
+    "type": "java.lang.String",
+    "description": "A description for 'security.jwt.refresh-secret'"
+  },
+  {
+    "name": "security.jwt.refresh-expiration",
+    "type": "java.lang.String",
+    "description": "A description for 'security.jwt.refresh-expiration'"
+  },
+  {
+    "name": "security.encryption.key",
+    "type": "java.lang.String",
+    "description": "A description for 'security.encryption.key'"
+  },
+  {
+    "name": "security.encryption.salt",
+    "type": "java.lang.String",
+    "description": "A description for 'security.encryption.salt'"
+  },
+  {
+    "name": "s3.aws.access-key-id",
+    "type": "java.lang.String",
+    "description": "A description for 's3.aws.access-key-id'"
+  },
+  {
+    "name": "s3.aws.secret-access-key",
+    "type": "java.lang.String",
+    "description": "A description for 's3.aws.secret-access-key'"
+  },
+  {
+    "name": "s3.aws.region",
+    "type": "java.lang.String",
+    "description": "A description for 's3.aws.region'"
+  },
+  {
+    "name": "s3.aws.s3-bucket",
+    "type": "java.lang.String",
+    "description": "A description for 's3.aws.s3-bucket'"
+  },
+  {
+    "name": "s3.aws.default-avatar-url",
+    "type": "java.lang.String",
+    "description": "A description for 's3.aws.default-avatar-url'"
+  },
+  {
+    "name": "spring.data.redis.host",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.data.redis.host'"
+  },
+  {
+    "name": "spring.data.redis.port",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.data.redis.port'"
+  },
+  {
+    "name": "spring.data.redis.password",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.data.redis.password'"
+  }
+]}
